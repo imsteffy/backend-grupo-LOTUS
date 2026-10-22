@@ -267,6 +267,191 @@ export const eliminarAnime = async (req, res) => {
  * POST /api/animes/importar-externo
  * Body: { malId: 1 } o { busqueda: "Cowboy Bebop" }
  */
+
+
+
+
+// ============================================================
+// IMPORTACIÓN EXTERNA (Jikan API con respaldo en AniList)
+// ============================================================
+
+const TIMEOUT_MS = 8000;
+
+// Escapa caracteres especiales para usar un título dentro de un RegExp
+const escaparRegex = (texto) => texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Fuente 1: Jikan (MyAnimeList)
+const buscarEnJikan = async ({ malId, busqueda }) => {
+  const url = malId
+    ? `https://api.jikan.moe/v4/anime/${malId}/full`
+    : `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(busqueda.trim())}&limit=1`;
+
+  const respuesta = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+
+  if (respuesta.status === 404) return null;
+  if (!respuesta.ok) {
+    throw new Error(`Jikan respondió HTTP ${respuesta.status}`);
+  }
+
+  const json = await respuesta.json();
+  const d = malId ? json.data : json.data?.[0];
+  if (!d) return null;
+
+  let estado = 'Finalizado';
+  if (d.status === 'Currently Airing') estado = 'En emisión';
+  else if (d.status === 'Not yet aired') estado = 'Por estrenar';
+
+  return {
+    fuente: 'Jikan API (MyAnimeList)',
+    externalId: d.mal_id,
+    titulo: d.title,
+    tituloOriginal: d.title_japanese || d.title_english || '',
+    sinopsis: d.synopsis,
+    generos: (d.genres || []).map((g) => g.name),
+    totalEpisodios: d.episodes || 0,
+    estadoEmision: estado,
+    imagenPortada: d.images?.jpg?.large_image_url || d.images?.jpg?.image_url,
+    anioEstreno: d.year || (d.aired?.from ? new Date(d.aired.from).getFullYear() : null)
+  };
+};
+
+// Fuente 2 (respaldo): AniList
+const buscarEnAniList = async ({ malId, busqueda }) => {
+  const query = `
+    query ($id: Int, $search: String) {
+      Media(idMal: $id, search: $search, type: ANIME) {
+        idMal
+        title { romaji english native }
+        description(asHtml: false)
+        genres
+        episodes
+        status
+        seasonYear
+        startDate { year }
+        coverImage { extraLarge large }
+      }
+    }`;
+
+  const variables = malId ? { id: Number(malId) } : { search: busqueda.trim() };
+
+  const respuesta = await fetch('https://graphql.anilist.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(TIMEOUT_MS)
+  });
+
+  if (respuesta.status === 404) return null;
+  if (!respuesta.ok) {
+    throw new Error(`AniList respondió HTTP ${respuesta.status}`);
+  }
+
+  const { data } = await respuesta.json();
+  const m = data?.Media;
+  if (!m) return null;
+
+  const mapaEstados = {
+    RELEASING: 'En emisión',
+    NOT_YET_RELEASED: 'Por estrenar'
+  };
+
+  return {
+    fuente: 'AniList API',
+    externalId: m.idMal || undefined,
+    titulo: m.title.english || m.title.romaji,
+    tituloOriginal: m.title.native || m.title.romaji || '',
+    sinopsis: m.description ? m.description.replace(/<[^>]*>/g, '').trim() : null,
+    generos: m.genres || [],
+    totalEpisodios: m.episodes || 0,
+    estadoEmision: mapaEstados[m.status] || 'Finalizado',
+    imagenPortada: m.coverImage?.extraLarge || m.coverImage?.large,
+    anioEstreno: m.seasonYear || m.startDate?.year || null
+  };
+};
+
+
+// Traducción de géneros (Jikan / AniList → español)
+const GENEROS_ES = {
+  'Action': 'Acción',
+  'Adventure': 'Aventura',
+  'Avant Garde': 'Vanguardia',
+  'Comedy': 'Comedia',
+  'Drama': 'Drama',
+  'Ecchi': 'Ecchi',
+  'Fantasy': 'Fantasía',
+  'Gourmet': 'Gastronomía',
+  'Horror': 'Terror',
+  'Mahou Shoujo': 'Chicas mágicas',
+  'Mecha': 'Mecha',
+  'Music': 'Música',
+  'Mystery': 'Misterio',
+  'Psychological': 'Psicológico',
+  'Romance': 'Romance',
+  'Sci-Fi': 'Ciencia ficción',
+  'Slice of Life': 'Recuentos de la vida',
+  'Sports': 'Deportes',
+  'Supernatural': 'Sobrenatural',
+  'Suspense': 'Suspenso',
+  'Thriller': 'Suspenso'
+};
+
+const traducirGeneros = (generos) => {
+  const traducidos = generos.map((g) => GENEROS_ES[g] || g);
+  return [...new Set(traducidos)]; // quita repetidos (ej: Suspense + Thriller)
+};
+
+// Traducción de sinopsis (inglés → español) con el endpoint público de Google Translate.
+
+const MAX_FRAGMENTO = 1500;
+
+const limpiarSinopsis = (texto) => texto.replace(/\(Source:[^)]*\)/gi, '').trim();
+
+const partirTexto = (texto) => {
+  const oraciones = texto.match(/[^.!?\n]+[.!?\n]*\s*/g) || [texto];
+  const fragmentos = [];
+  let actual = '';
+
+  for (const oracion of oraciones) {
+    if ((actual + oracion).length > MAX_FRAGMENTO && actual) {
+      fragmentos.push(actual);
+      actual = '';
+    }
+    actual += oracion;
+  }
+  if (actual) fragmentos.push(actual);
+
+  return fragmentos;
+};
+
+const traducirFragmento = async (fragmento) => {
+  const url =
+    'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=' +
+    encodeURIComponent(fragmento);
+
+  const respuesta = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+  if (!respuesta.ok) throw new Error(`Traductor respondió HTTP ${respuesta.status}`);
+
+  const json = await respuesta.json();
+  return json[0].map((parte) => parte[0]).join('');
+};
+
+export const traducirSinopsis = async (texto) => {
+  if (!texto) return texto;
+  const limpio = limpiarSinopsis(texto);
+
+  try {
+    const traducidos = [];
+    for (const fragmento of partirTexto(limpio)) {
+      traducidos.push(await traducirFragmento(fragmento));
+    }
+    return traducidos.join('').trim();
+  } catch (err) {
+    console.warn(`⚠️ No se pudo traducir la sinopsis, se guarda en inglés: ${err.message}`);
+    return limpio;
+  }
+};
+
+// Función principal (POST /api/animes/importar-externo)
 export const importarAnimeExterno = async (req, res) => {
   try {
     const { malId, busqueda } = req.body;
@@ -278,88 +463,86 @@ export const importarAnimeExterno = async (req, res) => {
       });
     }
 
-    // URL a consultar en Jikan API v4
-    let url = '';
-    if (malId) {
-      url = `https://api.jikan.moe/v4/anime/${malId}/full`;
-    } else {
-      url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(busqueda.trim())}&limit=1`;
+    // 1) Probar Jikan; si falla por red/servidor, probar AniList
+    let datos = null;
+    const fallos = [];
+
+    for (const buscar of [buscarEnJikan, buscarEnAniList]) {
+      try {
+        datos = await buscar({ malId, busqueda });
+        if (datos) break;
+      } catch (err) {
+        console.warn(`⚠️ Fuente externa falló (${buscar.name}): ${err.message}`);
+        fallos.push(err);
+      }
     }
 
-    console.log(`📡 Consultando Jikan API: ${url}`);
-    const respuestaExterna = await fetch(url, { signal: AbortSignal.timeout(8000) });
-
-    if (!respuestaExterna.ok) {
-      return res.status(respuestaExterna.status).json({
-        error: true,
-        mensaje: `Error al consultar Jikan API: HTTP ${respuestaExterna.statusText}`
-      });
-    }
-
-    const jsonExterno = await respuestaExterna.json();
-    const dataAnime = malId ? jsonExterno.data : jsonExterno.data?.[0];
-
-    if (!dataAnime) {
+    if (!datos) {
+      // Ambas fuentes fallaron por red => 504 (timeout) o 503 (caídas)
+      if (fallos.length === 2) {
+        const huboTimeout = fallos.some(
+          (e) => e.name === 'TimeoutError' || e.cause?.code === 'UND_ERR_CONNECT_TIMEOUT'
+        );
+        return res.status(huboTimeout ? 504 : 503).json({
+          error: true,
+          mensaje: 'No se pudo contactar a ninguna API externa de anime. Intentá más tarde o cargá el anime manualmente con POST /api/animes.'
+        });
+      }
+      // Respondieron bien pero sin resultados
       return res.status(404).json({
         error: true,
-        mensaje: `No se encontraron resultados en MyAnimeList para '${busqueda || malId}'`
+        mensaje: `No se encontraron resultados para '${busqueda || malId}'`
       });
     }
 
-    // Verificar si ya existe en nuestra base de datos local (por externalId o por título)
-    const existente = await Anime.findOne({
-      $or: [
-        { externalId: dataAnime.mal_id },
-        { titulo: { $regex: new RegExp(`^${dataAnime.title.trim()}$`, 'i') } }
-      ]
-    });
+    // 2) Evitar duplicados (por externalId o por título, con regex escapado)
+    const condiciones = [
+      { titulo: { $regex: new RegExp(`^${escaparRegex(datos.titulo.trim())}$`, 'i') } }
+    ];
+    if (datos.externalId) condiciones.push({ externalId: datos.externalId });
 
+    const existente = await Anime.findOne({ $or: condiciones });
     if (existente) {
       return res.status(409).json({
         error: true,
-        mensaje: `La serie '${dataAnime.title}' ya está registrada en nuestra base de datos local`,
+        mensaje: `La serie '${datos.titulo}' ya está registrada en nuestra base de datos local`,
         anime: existente
       });
     }
 
-    // Mapeo del estado de emisión de MyAnimeList al enum de nuestro modelo
-    let estadoMapeado = 'Finalizado';
-    if (dataAnime.status === 'Currently Airing') {
-      estadoMapeado = 'En emisión';
-    } else if (dataAnime.status === 'Not yet aired') {
-      estadoMapeado = 'Por estrenar';
-    }
-
-    // Extracción limpia de géneros
-    const listaGeneros = Array.isArray(dataAnime.genres) && dataAnime.genres.length > 0
-      ? dataAnime.genres.map(g => g.name)
-      : ['Acción', 'Aventura'];
-
-    // Año de estreno
-    const anio = dataAnime.year || (dataAnime.aired?.from ? new Date(dataAnime.aired.from).getFullYear() : 2024);
-
-    // Creación y persistencia en nuestro MongoDB local
-    const nuevoAnimePersistido = new Anime({
-      titulo: dataAnime.title,
-      tituloOriginal: dataAnime.title_japanese || dataAnime.title_english || '',
-      sinopsis: dataAnime.synopsis || 'Sinopsis no provista por la fuente oficial.',
-      generos: listaGeneros,
-      totalEpisodios: dataAnime.episodes || 0,
-      estadoEmision: estadoMapeado,
-      imagenPortada: dataAnime.images?.jpg?.large_image_url || dataAnime.images?.jpg?.image_url || 'https://via.placeholder.com/300x450',
-      anioEstreno: anio,
-      externalId: dataAnime.mal_id
+    // 3) Persistir en MongoDB
+    const nuevoAnime = new Anime({
+      titulo: datos.titulo,
+      tituloOriginal: datos.tituloOriginal,
+      sinopsis: datos.sinopsis
+        ? await traducirSinopsis(datos.sinopsis)
+        : 'Sinopsis no provista por la fuente.',
+      generos: datos.generos.length > 0 ? traducirGeneros(datos.generos) : ['Acción'],
+      totalEpisodios: datos.totalEpisodios,
+      estadoEmision: datos.estadoEmision,
+      imagenPortada: datos.imagenPortada || 'https://via.placeholder.com/300x450',
+      anioEstreno: datos.anioEstreno || new Date().getFullYear(),
+      externalId: datos.externalId
     });
 
-    const guardado = await nuevoAnimePersistido.save();
+    const guardado = await nuevoAnime.save();
 
     res.status(201).json({
-      mensaje: `Anime '${guardado.titulo}' importado exitosamente desde MyAnimeList y persistido en MongoDB`,
-      origenExterno: 'Jikan API (MyAnimeList)',
+      mensaje: `Anime '${guardado.titulo}' importado exitosamente y persistido en MongoDB`,
+      origenExterno: datos.fuente,
       anime: guardado
     });
   } catch (error) {
     console.error('Error al importar anime desde API externa:', error);
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        error: true,
+        mensaje: 'Los datos obtenidos de la fuente externa no pasan la validación del modelo',
+        detalles: error.message
+      });
+    }
+
     res.status(500).json({
       error: true,
       mensaje: 'Error interno al procesar la importación externa',
