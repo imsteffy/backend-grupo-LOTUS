@@ -7,6 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import { PORT } from './config/env.js';
 import { conectarDB } from './config/db.js';
+import animesRoutes from './routes/animes.routes.js';
 
 // Inicialización de la aplicación Express
 const app = express();
@@ -27,10 +28,10 @@ app.get('/', (req, res) => {
   });
 });
 
-// --- Montaje de Enrutadores (Se irán descomentando a medida que cada integrante sume sus rutas) ---
+// --- Montaje de Enrutadores ---
 // app.use('/api/auth', authRoutes);
 // app.use('/api/usuarios', usuariosRoutes);
-// app.use('/api/animes', animesRoutes);
+app.use('/api/animes', animesRoutes);
 // app.use('/api/seguimientos', seguimientosRoutes);
 // app.use('/api/resenas', resenasRoutes);
 // app.use('/api/stats', statsRoutes);
