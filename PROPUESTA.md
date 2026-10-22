@@ -4,13 +4,13 @@
 
 ## 1. La Idea del Proyecto
 
-**Kiroku** (del japonés 記録, *"registro / bitácora"*) es una plataforma web integral concebida para la comunidad aficionada a la animación japonesa. El proyecto se estructura bajo una arquitectura Full-Stack desacoplada, compuesta por un **Frontend interactivo (Single Page Application en React)** enfocado en la experiencia de usuario y un **Backend robusto (API RESTful en Node.js, Express y MongoDB — `kiroku-backend`)** encargado de la persistencia de datos, seguridad con JWT, control de roles y reglas de negocio analíticas.
+Como fans del anime, los tres sabemos lo fácil que es perder el hilo de las series entre distintas plataformas, por lo que decidimos crear "Kiroku": una web para que cualquier usuario pueda llevar un registro organizado de sus capítulos, puntuar, dejar reseñas y ver sus estadísticas de visualización. Para la entrega de este segundo parcial, nos enfocamos en darle vida al proyecto construyendo el Backend y su API REST utilizando MongoDB y Mongoose, aplicando la arquitectura en capas que aprendimos en clase..
 
 ---
 
 ## 2. La Problemática
 
-Actualmente, el consumo de anime se encuentra fragmentado entre múltiples servicios de streaming y sitios web, lo que provoca que los espectadores pierdan el seguimiento exacto de los episodios que vieron, no recuerden qué series dejaron pausadas y carezcan de estadísticas claras sobre el tiempo real invertido o sus géneros favoritos. Además, la mayoría de los espacios comunitarios presentan reseñas desordenadas, sin moderación ni filtros frente a *spoilers*, mientras que las aplicaciones existentes suelen depender en tiempo real de APIs externas inestables y sujetas a estrictos límites de peticiones (*rate limits*), afectando la disponibilidad del servicio.
+Hoy en día, al mirar anime en tantas plataformas distintas es muy fácil perder el hilo: no te acordás en qué capítulo te quedaste, qué series dejaste a medias ni cuánto tiempo les dedicaste. A esto se le suma que las comunidades suelen estar desorganizadas y sin filtros para los *spoilers*, y que las apps actuales a veces fallan o se caen seguido porque dependen de sistemas externos inestables.
 
 ---
 
