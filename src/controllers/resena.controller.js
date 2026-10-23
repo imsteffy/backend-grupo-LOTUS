@@ -47,7 +47,7 @@ const recalcularAnime = async (animeId) => {
 //  esAutorOAdmin — permiso sobre una reseña (función interna)
 // ============================================================
 const esAutorOAdmin = (resena, user) =>
-  resena.usuario_id.toString() === user.id || user.tipo === 'ADMIN';
+  resena.usuario_id.toString() === user.id || user.rol === 'ADMIN';
 
 // ============================================================
 //  obtenerResenasPorAnime — GET /api/resenas/anime/:animeId

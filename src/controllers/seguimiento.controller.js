@@ -4,7 +4,7 @@
 // Maneja la biblioteca personal del usuario: agregar animes,
 // cambiar su estado, avanzar episodios y quitarlos.
 // Todas las rutas pasan antes por authToken, por lo que acá
-// siempre existe req.user (con { id, tipo } del token).
+// siempre existe req.user (con { id, rol } del token).
 // ============================================================
 
 import mongoose from 'mongoose';
@@ -45,7 +45,7 @@ const aplicarReglas = (seguimiento, anime) => {
 //  esAutorOAdmin — permiso sobre un seguimiento (función interna)
 // ============================================================
 const esAutorOAdmin = (seguimiento, user) =>
-  seguimiento.usuario_id.toString() === user.id || user.tipo === 'ADMIN';
+  seguimiento.usuario_id.toString() === user.id || user.rol === 'ADMIN';
 
 // ============================================================
 //  obtenerSeguimientos — GET /api/seguimientos
