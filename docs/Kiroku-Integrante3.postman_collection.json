@@ -1,0 +1,205 @@
+{
+  "info": {
+    "name": "Kiroku - Integrante 3 (Seguimientos, Reseñas, Stats)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "token", "value": "" },
+    { "key": "animeId", "value": "" },
+    { "key": "seguimientoId", "value": "" },
+    { "key": "resenaId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "0 - Preparación",
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Jesu Test\",\n  \"email\": \"jesu.test@kiroku.com\",\n  \"password\": \"clave123\"\n}" },
+            "url": "{{baseUrl}}/auth/registro"
+          }
+        },
+        {
+          "name": "Login (guarda el token)",
+          "auth": { "type": "noauth" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j.token) { pm.collectionVariables.set('token', j.token); }"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"jesu.test@kiroku.com\",\n  \"password\": \"clave123\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Crear anime de prueba (guarda animeId)",
+          "auth": { "type": "noauth" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j._id) { pm.collectionVariables.set('animeId', j._id); }"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Date A Live (prueba)\",\n  \"sinopsis\": \"Anime de prueba\",\n  \"generos\": [\"Romance\", \"Comedia\"],\n  \"totalEpisodios\": 12,\n  \"imagenPortada\": \"https://via.placeholder.com/300x450\"\n}" },
+            "url": "{{baseUrl}}/animes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 - Seguimientos",
+      "item": [
+        {
+          "name": "Agregar a mi biblioteca (201)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j._id) { pm.collectionVariables.set('seguimientoId', j._id); }"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"anime_id\": \"{{animeId}}\",\n  \"estado\": \"Viendo\",\n  \"episodioActual\": 8\n}" },
+            "url": "{{baseUrl}}/seguimientos"
+          }
+        },
+        {
+          "name": "Agregar el mismo anime otra vez (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"anime_id\": \"{{animeId}}\"\n}" },
+            "url": "{{baseUrl}}/seguimientos"
+          }
+        },
+        {
+          "name": "Mi biblioteca",
+          "request": { "method": "GET", "url": "{{baseUrl}}/seguimientos" }
+        },
+        {
+          "name": "Mi biblioteca filtrada por estado",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/seguimientos?estado=Viendo", "host": ["{{baseUrl}}"], "path": ["seguimientos"], "query": [{ "key": "estado", "value": "Viendo" }] }
+          }
+        },
+        {
+          "name": "Sumar +1 episodio",
+          "request": { "method": "PATCH", "url": "{{baseUrl}}/seguimientos/{{seguimientoId}}/incrementar" }
+        },
+        {
+          "name": "Pasarse del total de episodios (400)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"episodioActual\": 99\n}" },
+            "url": "{{baseUrl}}/seguimientos/{{seguimientoId}}"
+          }
+        },
+        {
+          "name": "Llegar al último episodio (pasa a Completado)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"episodioActual\": 12\n}" },
+            "url": "{{baseUrl}}/seguimientos/{{seguimientoId}}"
+          }
+        },
+        {
+          "name": "Sin token (401)",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/seguimientos" }
+        }
+      ]
+    },
+    {
+      "name": "2 - Reseñas",
+      "item": [
+        {
+          "name": "Publicar reseña (201)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j._id) { pm.collectionVariables.set('resenaId', j._id); }"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"anime_id\": \"{{animeId}}\",\n  \"calificacion\": 9,\n  \"texto\": \"Muy buena\",\n  \"spoiler\": false\n}" },
+            "url": "{{baseUrl}}/resenas"
+          }
+        },
+        {
+          "name": "Nota fuera de rango (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"anime_id\": \"{{animeId}}\",\n  \"calificacion\": 11\n}" },
+            "url": "{{baseUrl}}/resenas"
+          }
+        },
+        {
+          "name": "Ver reseñas de un anime (público)",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/resenas/anime/{{animeId}}" }
+        },
+        {
+          "name": "Editar mi reseña",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"calificacion\": 7,\n  \"texto\": \"Cambié de opinión\"\n}" },
+            "url": "{{baseUrl}}/resenas/{{resenaId}}"
+          }
+        },
+        {
+          "name": "Ver el anime (promedio y total recalculados)",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/animes/{{animeId}}" }
+        },
+        {
+          "name": "Borrar mi reseña (204)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/resenas/{{resenaId}}" }
+        }
+      ]
+    },
+    {
+      "name": "3 - Estadísticas",
+      "item": [
+        {
+          "name": "Mis estadísticas",
+          "request": { "method": "GET", "url": "{{baseUrl}}/usuarios/me/estadisticas" }
+        },
+        {
+          "name": "Rankings (público)",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/stats/rankings" }
+        }
+      ]
+    },
+    {
+      "name": "4 - Limpieza",
+      "item": [
+        {
+          "name": "Quitar el anime de mi biblioteca (204)",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/seguimientos/{{seguimientoId}}" }
+        },
+        {
+          "name": "Borrar el anime de prueba",
+          "auth": { "type": "noauth" },
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/animes/{{animeId}}" }
+        }
+      ]
+    }
+  ]
+}
