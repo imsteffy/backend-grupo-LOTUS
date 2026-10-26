@@ -53,7 +53,18 @@ const animeSchema = new mongoose.Schema(
       type: String,
       required: [true, 'La URL de la imagen de portada es obligatoria'],
       trim: true,
-      default: 'https://via.placeholder.com/300x450?text=Sin+Portada'
+      default: 'https://via.placeholder.com/300x450?text=Sin+Portada',
+      validate: {
+        validator: (valor) => {
+          try {
+            const url = new URL(valor);
+            return url.protocol === 'http:' || url.protocol === 'https:';
+          } catch {
+            return false;
+          }
+        },
+        message: 'La imagen de portada debe ser una URL válida que empiece con http:// o https://'
+      }
     },
     anioEstreno: {
       type: Number,
