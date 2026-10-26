@@ -26,7 +26,7 @@ Arquitectura en capas con ES Modules, tomada del proyecto de referencia `recetor
 | `src/config` | `env.js` (valida variables de entorno) y `db.js` (conexión con eventos) |
 | `src/models` | `Usuario`, `Anime`, `Seguimiento` y `Resena` |
 | `src/controllers` | `auth`, `usuario`, `anime`, `seguimiento`, `resena` y `stats` |
-| `src/routes` | `authRoutes`, `usuariosRoutes`, `animes.routes`, `seguimientos.routes`, `resenas.routes` y `stats.routes` |
+| `src/routes` | `auth.routes`, `usuarios.routes`, `animes.routes`, `seguimientos.routes`, `resenas.routes` y `stats.routes` |
 | `src/middlewares` | `auth`, `authorize`, `errorHandler` y `logger` |
 
 Orden en `app.js`: CORS, `express.json`, logger, rutas y, al final, el `errorHandler`. Las estadísticas personales se montan en `/api/usuarios/me/estadisticas` antes que `/api/usuarios`.
@@ -126,12 +126,12 @@ Seguimientos y reseñas se pueden modificar o borrar por su autor o por un ADMIN
 | --- | --- | --- | --- | --- |
 | POST | `/api/auth/registro` | Público | 1 | 201 |
 | POST | `/api/auth/login` | Público | 1 | 200 |
-| GET | `/api/auth/perfil` | Token | 1 | 200 |
 | GET | `/api/usuarios` | ADMIN | 1 | 200 |
 | GET | `/api/usuarios/me` | Token | 1 | 200 |
 | PUT | `/api/usuarios/me` | Token | 1 | 200 |
 | GET | `/api/usuarios/:id` | ADMIN | 1 | 200 |
-| DELETE | `/api/usuarios/:id` | ADMIN | 1 | 204 |
+| DELETE | `/api/usuarios/:id` | ADMIN | 1 | 204 (403 si es uno mismo, 409 si tiene seguimientos o reseñas) |
+| PATCH | `/api/usuarios/:id/rol` | ADMIN | 1 | 200 (body `{ "rol": "ADMIN" \| "STD" }`; 403 si es uno mismo) |
 | GET | `/api/animes` | Público | 2 | 200 |
 | GET | `/api/animes/:id` | Público | 2 | 200 |
 | POST | `/api/animes` | ADMIN | 2 | 201 |

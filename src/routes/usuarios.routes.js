@@ -3,6 +3,7 @@ import {
   obtenerUsuarios,
   obtenerUsuarioPorId,
   eliminarUsuario,
+  cambiarRolUsuario,
   obtenerPerfil,
   actualizarMiPerfil,
 } from '../controllers/usuario.controller.js';
@@ -21,5 +22,8 @@ router.put('/me', authToken, actualizarMiPerfil);
 // Consulta y eliminación por ID se conservan solo para administración.
 router.get('/:id', authToken, authorize('ADMIN'), obtenerUsuarioPorId);
 router.delete('/:id', authToken, authorize('ADMIN'), eliminarUsuario);
+
+// Cambiar el rol de otro usuario (STD <-> ADMIN). Solo ADMIN.
+router.patch('/:id/rol', authToken, authorize('ADMIN'), cambiarRolUsuario);
 
 export default router;

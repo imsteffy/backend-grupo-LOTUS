@@ -27,7 +27,7 @@ El propósito de **Kiroku** es transformar el seguimiento de series en una exper
 
 ## 4. Arquitectura y Estructura en Capas (`src/`)
 
-Siguiendo el patrón modular pedagógico de **`recetorium-backend-kilo`** con Node.js y módulos ES6 (`"type": "module"`):
+Siguiendo un patrón modular por capas con Node.js y módulos ES6 (`"type": "module"`):
 * **`app.js`**: Instancia Express, middlewares globales (`cors`, `express.json`), enrutadores montados y servidor en `PORT`.
 * **`config/`**: `env.js` (dotenv centralizado) y `db.js` (conexión Mongoose asíncrona con eventos).
 * **`models/`**: 4 esquemas de Mongoose con validaciones, índices compuestos únicos y método `.toJSON()` (oculta contraseñas).
@@ -73,7 +73,7 @@ Siguiendo el patrón modular pedagógico de **`recetorium-backend-kilo`** con No
 ---
 
 ## 9. Endpoints Principales de la API
-* **Auth:** `POST /api/auth/registro`, `POST /api/auth/login`, `GET /api/auth/perfil`
+* **Auth:** `POST /api/auth/registro`, `POST /api/auth/login`
 * **Usuarios:** `GET /api/usuarios` (ADMIN), `PUT /api/usuarios/me`, `GET /api/usuarios/me/estadisticas`
 * **Animes:** `GET /api/animes`, `GET /api/animes/:id`, `POST /api/animes` (ADMIN), `PUT /api/animes/:id` (ADMIN), `DELETE /api/animes/:id` (ADMIN), `POST /api/animes/importar-externo` (ADMIN)
 * **Seguimientos:** `GET /api/seguimientos`, `POST /api/seguimientos`, `PUT /api/seguimientos/:id`, `PATCH /api/seguimientos/:id/incrementar` (+1 cap), `DELETE /api/seguimientos/:id`

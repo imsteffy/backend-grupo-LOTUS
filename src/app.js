@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 //  app.js — Punto de entrada del servidor (entry point)
 //  Proyecto: Kiroku API REST
 // ============================================================
@@ -7,8 +7,8 @@ import express from 'express';
 import cors from 'cors';
 import { PORT } from './config/env.js';
 import { conectarDB } from './config/db.js';
-import authRoutes from './routes/authRoutes.js';
-import usuariosRoutes from './routes/usuariosRoutes.js';
+import authRoutes from './routes/auth.routes.js';
+import usuariosRoutes from './routes/usuarios.routes.js';
 import animesRoutes from './routes/animes.routes.js';
 import seguimientosRoutes from './routes/seguimientos.routes.js';
 import resenasRoutes from './routes/resenas.routes.js';
