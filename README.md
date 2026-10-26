@@ -66,10 +66,11 @@ kiroku-backend/
 ├── src/
 │   ├── app.js                 # Punto de entrada Express, middlewares y encendido
 │   ├── seed.js                # Script para crear el primer ADMIN
+│   ├── seedGeneros.js         # Script que carga el catálogo de géneros
 │   ├── config/                # env.js (variables de entorno) y db.js (conexión MongoDB)
-│   ├── models/                # Usuario.js, Anime.js, Seguimiento.js, Resena.js
-│   ├── controllers/           # auth, usuario, anime, seguimiento, resena, stats
-│   ├── routes/                # auth, usuarios, animes, seguimientos, resenas, stats (*.routes.js)
+│   ├── models/                # Usuario.js, Anime.js, Genero.js, Seguimiento.js, Resena.js
+│   ├── controllers/           # auth, usuario, anime, genero, seguimiento, resena, stats
+│   ├── routes/                # auth, usuarios, animes, generos, seguimientos, resenas, stats (*.routes.js)
 │   └── middlewares/           # auth, authorize (roles), errorHandler y logger
 ├── docs/                      # Documentación y colección de Postman
 ├── .env.example
@@ -97,6 +98,7 @@ Completá el archivo `.env` con tus valores (ver la tabla siguiente) y ejecutá:
 | `npm run dev` | Inicia el servidor con recarga automática (desarrollo) |
 | `npm start` | Inicia el servidor (producción) |
 | `npm run seed:admin` | Crea el primer usuario ADMIN (o promueve a ADMIN un email existente) |
+| `npm run seed:generos` | Carga el catálogo de géneros (los base y los que ya usan los animes). Se puede repetir sin duplicar |
 
 El servidor queda escuchando en `http://localhost:3000` (o el `PORT` configurado).
 
@@ -152,7 +154,22 @@ Base: `/api`. Las rutas protegidas requieren el header `Authorization: Bearer <t
 | POST | `/animes` | ADMIN | Crea un anime (409 si el título ya existe) | 201, 400, 401, 403, 409 |
 | PUT | `/animes/:id` | ADMIN | Modifica un anime | 200, 400, 401, 403, 404, 409 |
 | DELETE | `/animes/:id` | ADMIN | Elimina un anime (409 si tiene seguimientos o reseñas) | 200, 400, 401, 403, 404, 409 |
-| POST | `/animes/importar-externo` | ADMIN | Importa desde Jikan/AniList (`malId` o `busqueda`) | 201, 400, 401, 403, 409 |
+| POST | `/animes/importar-externo` | ADMIN | Importa desde Jikan/AniList (`malId` o `busqueda`). Los géneros que no estén en el catálogo se crean solos | 201, 400, 401, 403, 409 |
+
+Los `generos` de un anime (en `POST` y `PUT /animes`) deben existir en el catálogo de géneros; si no, responde 400.
+
+### Géneros (catálogo administrable)
+
+Los géneros se guardan en la colección `generos`. El ADMIN los gestiona sin tocar código y luego los asigna a los animes enviando sus nombres en `generos`.
+
+| Método | Ruta | Acceso | Descripción | Respuestas |
+|---|---|---|---|---|
+| GET | `/generos` | Público | Lista los géneros ordenados A-Z | 200 |
+| POST | `/generos` | ADMIN | Crea un género (`{ "nombre": "Mecha" }`) | 201, 400, 401, 403, 409 |
+| PUT | `/generos/:id` | ADMIN | Renombra un género (409 si el nombre existe o si algún anime lo usa) | 200, 400, 401, 403, 404, 409 |
+| DELETE | `/generos/:id` | ADMIN | Elimina un género (409 si algún anime lo usa) | 204, 400, 401, 403, 404, 409 |
+
+Si ya tenés animes cargados, ejecutá una vez `npm run seed:generos` para poblar el catálogo.
 
 ### Seguimientos (biblioteca personal)
 
