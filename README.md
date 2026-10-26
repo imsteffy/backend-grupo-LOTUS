@@ -152,7 +152,8 @@ Base: `/api`. Las rutas protegidas requieren el header `Authorization: Bearer <t
 | GET | `/animes` | Público | Lista con filtros: `buscar`, `genero`, `estado`, `anio`, `orden`, `pagina`, `limite` | 200 |
 | GET | `/animes/:id` | Público | Ficha de un anime | 200, 400, 404 |
 | POST | `/animes` | ADMIN | Crea un anime (409 si el título ya existe) | 201, 400, 401, 403, 409 |
-| PUT | `/animes/:id` | ADMIN | Modifica un anime | 200, 400, 401, 403, 404, 409 |
+| PUT | `/animes/:id` | ADMIN | Modifica un anime (si envía `generos`, reemplaza la lista completa) | 200, 400, 401, 403, 404, 409 |
+| PATCH | `/animes/:id/generos` | ADMIN | Agrega géneros (`{ "generos": ["Isekai"] }`) sin quitar los que ya tiene ni duplicar | 200, 400, 401, 403, 404 |
 | DELETE | `/animes/:id` | ADMIN | Elimina un anime (409 si tiene seguimientos o reseñas) | 200, 400, 401, 403, 404, 409 |
 | POST | `/animes/importar-externo` | ADMIN | Importa desde Jikan/AniList (`malId` o `busqueda`). Los géneros que no estén en el catálogo se crean solos | 201, 400, 401, 403, 409 |
 
