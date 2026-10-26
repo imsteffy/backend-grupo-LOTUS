@@ -149,10 +149,10 @@ Base: `/api`. Las rutas protegidas requieren el header `Authorization: Bearer <t
 |---|---|---|---|---|
 | GET | `/animes` | Público | Lista con filtros: `buscar`, `genero`, `estado`, `anio`, `orden`, `pagina`, `limite` | 200 |
 | GET | `/animes/:id` | Público | Ficha de un anime | 200, 400, 404 |
-| POST | `/animes` | ADMIN | Crea un anime | 201, 400, 401, 403 |
-| PUT | `/animes/:id` | ADMIN | Modifica un anime | 200, 400, 401, 403, 404 |
+| POST | `/animes` | ADMIN | Crea un anime (409 si el título ya existe) | 201, 400, 401, 403, 409 |
+| PUT | `/animes/:id` | ADMIN | Modifica un anime | 200, 400, 401, 403, 404, 409 |
 | DELETE | `/animes/:id` | ADMIN | Elimina un anime (409 si tiene seguimientos o reseñas) | 200, 400, 401, 403, 404, 409 |
-| POST | `/animes/importar-externo` | ADMIN | Importa desde Jikan/AniList (`malId` o `busqueda`) | 201, 400, 401, 403 |
+| POST | `/animes/importar-externo` | ADMIN | Importa desde Jikan/AniList (`malId` o `busqueda`) | 201, 400, 401, 403, 409 |
 
 ### Seguimientos (biblioteca personal)
 
@@ -161,7 +161,7 @@ Cada usuario solo ve y modifica sus propios seguimientos (un ADMIN puede moderar
 | Método | Ruta | Acceso | Descripción | Respuestas |
 |---|---|---|---|---|
 | GET | `/seguimientos` | Token | Mi biblioteca; filtro opcional `?estado=Viendo` | 200, 401 |
-| POST | `/seguimientos` | Token | Agrega un anime (`anime_id`, `estado`, `episodioActual`) | 201, 400, 401, 404, 409 |
+| POST | `/seguimientos` | Token | Agrega un anime (`anime_id`, `estado`, `episodioActual`); 400 si ya lo tenía | 201, 400, 401, 404 |
 | PUT | `/seguimientos/:id` | Token (dueño) | Modifica `estado` y/o `episodioActual` | 200, 400, 401, 403, 404 |
 | PATCH | `/seguimientos/:id/incrementar` | Token (dueño) | Suma un episodio | 200, 400, 401, 403, 404 |
 | DELETE | `/seguimientos/:id` | Token (dueño) | Quita el anime de la biblioteca | 204, 400, 401, 403, 404 |
@@ -173,7 +173,7 @@ Estados válidos: `Viendo`, `Completado`, `Pendiente`, `Abandonado`. Al llegar a
 | Método | Ruta | Acceso | Descripción | Respuestas |
 |---|---|---|---|---|
 | GET | `/resenas/anime/:animeId` | Público | Reseñas de un anime | 200, 400 |
-| POST | `/resenas` | Token | Crea una reseña (`anime_id`, `calificacion` 1-10, `texto`, `spoiler`) | 201, 400, 401, 404, 409 |
+| POST | `/resenas` | Token | Crea una reseña (`anime_id`, `calificacion` 1-10, `texto`, `spoiler`); 400 si ya reseñó ese anime | 201, 400, 401, 404 |
 | PUT | `/resenas/:id` | Token (autor) | Modifica la reseña | 200, 400, 401, 403, 404 |
 | DELETE | `/resenas/:id` | Token (autor) | Elimina la reseña | 204, 400, 401, 403, 404 |
 
@@ -190,6 +190,20 @@ Solo se permite una reseña por usuario y anime. El promedio del anime se recalc
 Los errores devuelven JSON con un campo `mensaje`. Códigos usados: `400` datos inválidos, `401` token ausente o inválido, `403` sin permisos, `404` no encontrado, `409` conflicto (duplicado o dependencias) y `500` error interno.
 
 Hay una colección de Postman con ejemplos en la carpeta [`docs/`](./docs).
+
+---
+
+## 🌍 Deploy
+
+La API está desplegada en Render:
+
+**https://backend-grupo-lotus.onrender.com**
+
+- Comprobación: `GET https://backend-grupo-lotus.onrender.com/` responde `{"mensaje":"API Kiroku activa y funcionando", ...}`.
+- Ejemplo público: `GET https://backend-grupo-lotus.onrender.com/api/animes`.
+- Las variables de entorno (`MONGO_URI`, `JWT_SECRET`, `JWT_EXPIRY`) se configuran en el panel de Render, no en el repositorio.
+- El plan gratuito de Render pone el servicio en reposo tras unos minutos sin uso: la primera petición puede tardar hasta un minuto en responder.
+- Para crear el primer ADMIN en producción se ejecuta `npm run seed:admin` con `ADMIN_EMAIL` y `ADMIN_PASSWORD` definidas.
 
 ---
 
