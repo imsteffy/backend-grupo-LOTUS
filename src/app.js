@@ -33,9 +33,9 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/animes', animesRoutes);
-// app.use('/api/seguimientos', seguimientosRoutes);
-// app.use('/api/resenas', resenasRoutes);
-// app.use('/api/stats', statsRoutes);
+app.use('/api/seguimientos', seguimientosRoutes);
+app.use('/api/resenas', resenasRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Debe registrarse después de todas las rutas para recibir sus errores.
 app.use(errorHandler);
