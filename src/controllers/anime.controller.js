@@ -26,8 +26,8 @@ export const obtenerAnimes = async (req, res) => {
     const filtro = {};
 
     // Buscador por texto (insensible a mayúsculas/minúsculas)
-    if (buscar && buscar.trim() !== '') {
-      const termino = buscar.trim();
+    if (typeof buscar === 'string' && buscar.trim() !== '') {
+      const termino = escaparRegex(buscar.trim());
       filtro.$or = [
         { titulo: { $regex: termino, $options: 'i' } },
         { tituloOriginal: { $regex: termino, $options: 'i' } }
@@ -35,12 +35,12 @@ export const obtenerAnimes = async (req, res) => {
     }
 
     // Filtro por género
-    if (genero && genero.trim() !== '') {
-      filtro.generos = { $regex: new RegExp(`^${genero.trim()}$`, 'i') };
+    if (typeof genero === 'string' && genero.trim() !== '') {
+      filtro.generos = { $regex: new RegExp(`^${escaparRegex(genero.trim())}$`, 'i') };
     }
 
     // Filtro por estado de emisión
-    if (estado && estado.trim() !== '') {
+    if (typeof estado === 'string' && estado.trim() !== '') {
       filtro.estadoEmision = estado.trim();
     }
 
@@ -142,9 +142,16 @@ export const crearAnime = async (req, res) => {
       anioEstreno
     } = req.body;
 
-    // Validación de duplicados por título
+    if (typeof titulo !== 'string' || titulo.trim() === '') {
+      return res.status(400).json({
+        error: true,
+        mensaje: 'El título del anime es obligatorio'
+      });
+    }
+
+    // Validación de duplicados por título (con regex escapado)
     const animeExistente = await Anime.findOne({
-      titulo: { $regex: new RegExp(`^${titulo.trim()}$`, 'i') }
+      titulo: { $regex: new RegExp(`^${escaparRegex(titulo.trim())}$`, 'i') }
     });
 
     if (animeExistente) {
