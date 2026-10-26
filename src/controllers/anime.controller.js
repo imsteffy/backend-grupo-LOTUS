@@ -85,7 +85,7 @@ export const obtenerAnimes = async (req, res) => {
     res.status(500).json({
       error: true,
       mensaje: 'Error al consultar el catálogo de animes',
-      detalles: error.message
+     
     });
   }
 };
@@ -120,7 +120,7 @@ export const obtenerAnimePorId = async (req, res) => {
     res.status(500).json({
       error: true,
       mensaje: 'Error al consultar la ficha del anime',
-      detalles: error.message
+      
     });
   }
 };
@@ -204,9 +204,40 @@ export const actualizarAnime = async (req, res) => {
       });
     }
 
+    // Solo se pueden editar estos campos. calificacionPromedio y totalResenas
+    // los recalcula el módulo de reseñas; externalId lo fija la importación.
+    const camposEditables = [
+      'titulo',
+      'tituloOriginal',
+      'sinopsis',
+      'generos',
+      'totalEpisodios',
+      'estadoEmision',
+      'imagenPortada',
+      'anioEstreno'
+    ];
+
+    const body = req.body ?? {};
+    const enviados = Object.keys(body);
+    const noPermitidos = enviados.filter((campo) => !camposEditables.includes(campo));
+
+    if (noPermitidos.length > 0) {
+      return res.status(400).json({
+        error: true,
+        mensaje: `No se permite modificar: ${noPermitidos.join(', ')}`
+      });
+    }
+
+    if (enviados.length === 0) {
+      return res.status(400).json({
+        error: true,
+        mensaje: 'Indique al menos un campo para actualizar'
+      });
+    }
+
     const animeActualizado = await Anime.findByIdAndUpdate(
       id,
-      req.body,
+      body,
       { new: true, runValidators: true }
     );
 
@@ -223,10 +254,25 @@ export const actualizarAnime = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al actualizar anime:', error);
-    res.status(400).json({
+
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json({
+        error: true,
+        mensaje: 'Los datos enviados no son válidos',
+        detalles: error.message
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        error: true,
+        mensaje: 'Ya existe un anime con ese título'
+      });
+    }
+
+    res.status(500).json({
       error: true,
-      mensaje: 'Error al actualizar los datos del anime',
-      detalles: error.message
+      mensaje: 'Error interno al actualizar el anime'
     });
   }
 };
@@ -285,7 +331,7 @@ export const eliminarAnime = async (req, res) => {
     res.status(500).json({
       error: true,
       mensaje: 'Error interno al eliminar el anime',
-      detalles: error.message
+      
     });
   }
 };
@@ -574,7 +620,7 @@ export const importarAnimeExterno = async (req, res) => {
     res.status(500).json({
       error: true,
       mensaje: 'Error interno al procesar la importación externa',
-      detalles: error.message
+      
     });
   }
 };
