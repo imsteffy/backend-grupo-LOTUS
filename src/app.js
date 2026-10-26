@@ -9,9 +9,12 @@ import { PORT } from './config/env.js';
 import { conectarDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import usuariosRoutes from './routes/usuariosRoutes.js';
+import animesRoutes from './routes/animes.routes.js';
+import seguimientosRoutes from './routes/seguimientos.routes.js';
+import resenasRoutes from './routes/resenas.routes.js';
+import statsRoutes, { estadisticasPersonalesRouter } from './routes/stats.routes.js';
 import { logger } from './middlewares/logger.middleware.js';
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
-import animesRoutes from './routes/animes.routes.js';
 
 // Inicialización de la aplicación Express
 const app = express();
@@ -31,6 +34,8 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+// Las estadísticas personales cuelgan de /api/usuarios/me; se montan antes que /api/usuarios.
+app.use('/api/usuarios/me/estadisticas', estadisticasPersonalesRouter);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/animes', animesRoutes);
 app.use('/api/seguimientos', seguimientosRoutes);
