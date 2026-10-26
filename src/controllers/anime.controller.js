@@ -242,28 +242,49 @@ export const eliminarAnime = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         error: true,
-        mensaje: 'ID de anime inválido'
+        mensaje: 'El ID proporcionado no tiene un formato válido'
       });
     }
 
-    const animeEliminado = await Anime.findByIdAndDelete(id);
-
-    if (!animeEliminado) {
+    const anime = await Anime.findById(id);
+    if (!anime) {
       return res.status(404).json({
         error: true,
-        mensaje: 'No se encontró el anime a eliminar'
+        mensaje: 'No se encontró ningún anime con ese ID'
       });
     }
 
+    // Integridad referencial: no borrar series que otros módulos usan.
+    // Los modelos Seguimiento y Resena los define el Integrante 3; se consultan
+    // por nombre para no crear una dependencia circular entre módulos.
+    const Seguimiento = mongoose.models.Seguimiento;
+    const Resena = mongoose.models.Resena;
+
+    const [totalSeguimientos, totalResenas] = await Promise.all([
+      Seguimiento ? Seguimiento.countDocuments({ anime_id: id }) : 0,
+      Resena ? Resena.countDocuments({ anime_id: id }) : 0
+    ]);
+
+    if (totalSeguimientos > 0 || totalResenas > 0) {
+      return res.status(409).json({
+        error: true,
+        mensaje: `No se puede eliminar '${anime.titulo}' porque está en uso: ${totalSeguimientos} seguimiento(s) y ${totalResenas} reseña(s) dependen de esta serie`,
+        seguimientos: totalSeguimientos,
+        resenas: totalResenas
+      });
+    }
+
+    await anime.deleteOne();
+
     res.json({
-      mensaje: `El anime '${animeEliminado.titulo}' fue eliminado exitosamente del catálogo`,
-      id
+      mensaje: `Anime '${anime.titulo}' eliminado correctamente del catálogo`,
+      anime
     });
   } catch (error) {
     console.error('Error al eliminar anime:', error);
     res.status(500).json({
       error: true,
-      mensaje: 'Error al eliminar el anime del catálogo',
+      mensaje: 'Error interno al eliminar el anime',
       detalles: error.message
     });
   }
