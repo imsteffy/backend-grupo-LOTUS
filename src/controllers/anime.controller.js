@@ -5,6 +5,7 @@
 
 import mongoose from 'mongoose';
 import { Anime } from '../models/Anime.js';
+import { resolverGeneros, asegurarGeneros } from './genero.controller.js';
 
 /**
  * 1. Obtener catálogo de animes con buscador y filtros combinados
@@ -125,6 +126,19 @@ export const obtenerAnimePorId = async (req, res) => {
   }
 };
 
+// Comprueba que `generos` sea un array con nombres que existan en la colección generos.
+// Devuelve { validos } con los nombres oficiales, o { error } con el mensaje.
+const validarGenerosEnviados = async (generos) => {
+  if (!Array.isArray(generos) || generos.length === 0) {
+    return { error: 'Indique al menos un género (array de nombres)' };
+  }
+  const { validos, invalidos } = await resolverGeneros(generos);
+  if (invalidos.length > 0) {
+    return { error: `Género no válido: ${invalidos.join(', ')}. Debe existir en /api/generos` };
+  }
+  return { validos };
+};
+
 /**
  * 3. Crear manualmente un anime en el catálogo
  * POST /api/animes
@@ -162,11 +176,19 @@ export const crearAnime = async (req, res) => {
       });
     }
 
+    // Los géneros deben existir en el catálogo (colección generos)
+    let generosOficiales = generos;
+    if (generos !== undefined) {
+      const resultado = await validarGenerosEnviados(generos);
+      if (resultado.error) return res.status(400).json({ error: true, mensaje: resultado.error });
+      generosOficiales = resultado.validos;
+    }
+
     const nuevoAnime = new Anime({
       titulo,
       tituloOriginal,
       sinopsis,
-      generos,
+      generos: generosOficiales,
       totalEpisodios,
       estadoEmision,
       imagenPortada,
@@ -233,6 +255,12 @@ export const actualizarAnime = async (req, res) => {
         error: true,
         mensaje: 'Indique al menos un campo para actualizar'
       });
+    }
+
+    if (body.generos !== undefined) {
+      const resultado = await validarGenerosEnviados(body.generos);
+      if (resultado.error) return res.status(400).json({ error: true, mensaje: resultado.error });
+      body.generos = resultado.validos;
     }
 
     const animeActualizado = await Anime.findByIdAndUpdate(
@@ -445,7 +473,7 @@ const buscarEnAniList = async ({ malId, busqueda }) => {
 
 
 // Traducción de géneros (Jikan / AniList → español)
-const GENEROS_ES = {
+export const GENEROS_ES = {
   'Action': 'Acción',
   'Adventure': 'Aventura',
   'Avant Garde': 'Vanguardia',
@@ -584,14 +612,18 @@ export const importarAnimeExterno = async (req, res) => {
       });
     }
 
-    // 3) Persistir en MongoDB
+    // 3) Persistir en MongoDB. Los géneros que no estén en el catálogo se crean solos.
+    const generosImportados = datos.generos.length > 0 ? traducirGeneros(datos.generos) : ['Acción'];
+    await asegurarGeneros(generosImportados);
+    const { validos: generosOficiales } = await resolverGeneros(generosImportados);
+
     const nuevoAnime = new Anime({
       titulo: datos.titulo,
       tituloOriginal: datos.tituloOriginal,
       sinopsis: datos.sinopsis
         ? await traducirSinopsis(datos.sinopsis)
         : 'Sinopsis no provista por la fuente.',
-      generos: datos.generos.length > 0 ? traducirGeneros(datos.generos) : ['Acción'],
+      generos: generosOficiales,
       totalEpisodios: datos.totalEpisodios,
       estadoEmision: datos.estadoEmision,
       imagenPortada: datos.imagenPortada || 'https://via.placeholder.com/300x450',
