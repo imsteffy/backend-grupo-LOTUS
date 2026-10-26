@@ -96,6 +96,10 @@ export const crearSeguimiento = async (req, res) => {
       episodioActual,
     });
 
+    // Se valida antes de aplicar las reglas para que un estado
+    // inválido no sea reemplazado por "Completado" sin avisar.
+    await nuevo.validate();
+
     const errorRegla = aplicarReglas(nuevo, anime);
     if (errorRegla) {
       return res.status(400).json({ mensaje: errorRegla });
@@ -128,6 +132,8 @@ export const actualizarSeguimiento = async (req, res) => {
     // Actualización parcial: solo se cambia lo que llegó en el body
     if (estado !== undefined) seguimiento.estado = estado;
     if (episodioActual !== undefined) seguimiento.episodioActual = episodioActual;
+
+    await seguimiento.validate();
 
     const anime = await obtenerAnime(seguimiento.anime_id);
     const errorRegla = aplicarReglas(seguimiento, anime);
@@ -193,6 +199,8 @@ export const eliminarSeguimiento = async (req, res) => {
     await seguimiento.deleteOne();
     res.status(204).send();
   } catch (error) {
-    res.status(500).json({ mensaje: error.message });
+    // Un id con formato inválido es un error del cliente, no del servidor
+    const codigo = error.name === 'CastError' ? 400 : 500;
+    res.status(codigo).json({ mensaje: error.message });
   }
 };

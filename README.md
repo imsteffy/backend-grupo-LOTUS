@@ -59,21 +59,137 @@ Diseñado para ir más allá de un CRUD básico y cumplir con la profundidad exi
 
 ## 📂 Arquitectura del Proyecto (`src/`)
 
-Estructurado bajo el patrón modular por capas visto en clase con el Prof. Cimino (**`recetorium-backend-kilo`**):
+Estructurado en capas, con ES Modules (`"type": "module"`):
 
 ```text
 kiroku-backend/
 ├── src/
 │   ├── app.js                 # Punto de entrada Express, middlewares y encendido
+│   ├── seed.js                # Script para crear el primer ADMIN
 │   ├── config/                # env.js (variables de entorno) y db.js (conexión MongoDB)
 │   ├── models/                # Usuario.js, Anime.js, Seguimiento.js, Resena.js
 │   ├── controllers/           # auth, usuario, anime, seguimiento, resena, stats
-│   ├── routes/                # Enrutadores limpios con express.Router()
+│   ├── routes/                # auth, usuarios, animes, seguimientos, resenas, stats (*.routes.js)
 │   └── middlewares/           # auth, authorize (roles), errorHandler y logger
+├── docs/                      # Documentación y colección de Postman
 ├── .env.example
 ├── package.json
 └── README.md
 ```
+
+---
+
+## 🚀 Instalación y puesta en marcha
+
+Requisitos: **Node.js 18 o superior** y una base **MongoDB** (local o Atlas).
+
+```bash
+git clone https://github.com/imsteffy/backend-grupo-LOTUS.git
+cd backend-grupo-LOTUS
+npm install
+cp .env.example .env      # en Windows: copy .env.example .env
+```
+
+Completá el archivo `.env` con tus valores (ver la tabla siguiente) y ejecutá:
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Inicia el servidor con recarga automática (desarrollo) |
+| `npm start` | Inicia el servidor (producción) |
+| `npm run seed:admin` | Crea el primer usuario ADMIN (o promueve a ADMIN un email existente) |
+
+El servidor queda escuchando en `http://localhost:3000` (o el `PORT` configurado).
+
+### Variables de entorno (`.env`)
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `PORT` | No (3000) | Puerto del servidor |
+| `MONGO_URI` | Sí | Cadena de conexión a MongoDB (local o Atlas) |
+| `JWT_SECRET` | Sí | Secreto para firmar los JWT. Mínimo 32 caracteres; el servidor no arranca con un valor de ejemplo |
+| `JWT_EXPIRY` | No (24h) | Duración del token, por ejemplo `24h` o `7d` |
+| `ADMIN_NOMBRE` | Solo seed | Nombre del ADMIN (por defecto `Administrador`) |
+| `ADMIN_EMAIL` | Solo seed | Email del ADMIN |
+| `ADMIN_PASSWORD` | Solo seed | Contraseña del ADMIN (mínimo 6 caracteres) |
+
+> El registro público (`POST /api/auth/registro`) siempre crea usuarios `STD`. Para tener un ADMIN, usá `npm run seed:admin`. Después, un ADMIN puede cambiar el rol de otros usuarios con `PATCH /api/usuarios/:id/rol`.
+
+---
+
+## 📡 Endpoints
+
+Base: `/api`. Las rutas protegidas requieren el header `Authorization: Bearer <token>` (el token se obtiene en el login). Los cuerpos se envían como JSON.
+
+**Leyenda de acceso:** Público = sin token · Token = usuario logueado (STD o ADMIN) · ADMIN = solo administrador.
+
+### Autenticación
+
+| Método | Ruta | Acceso | Descripción | Respuestas |
+|---|---|---|---|---|
+| POST | `/auth/registro` | Público | Registra un usuario STD (`nombre`, `email`, `password`) | 201, 400, 409 |
+| POST | `/auth/login` | Público | Devuelve el `token` JWT (`email`, `password`) | 200, 400, 401 |
+
+### Usuarios
+
+| Método | Ruta | Acceso | Descripción | Respuestas |
+|---|---|---|---|---|
+| GET | `/usuarios/me` | Token | Perfil del usuario logueado | 200, 401, 404 |
+| PUT | `/usuarios/me` | Token | Modifica `nombre` o `avatar` propios | 200, 400, 401 |
+| GET | `/usuarios/me/estadisticas` | Token | Estadísticas personales (horas vistas, género favorito, etc.) | 200, 401 |
+| GET | `/usuarios` | ADMIN | Lista de usuarios | 200, 401, 403 |
+| GET | `/usuarios/:id` | ADMIN | Un usuario por id | 200, 400, 401, 403, 404 |
+| PATCH | `/usuarios/:id/rol` | ADMIN | Cambia el rol (`{ "rol": "ADMIN" }` o `{ "rol": "STD" }`) | 200, 400, 401, 403, 404 |
+| DELETE | `/usuarios/:id` | ADMIN | Elimina un usuario | 204, 400, 401, 403, 404, 409 |
+
+`DELETE /usuarios/:id` responde 403 si el ADMIN intenta borrarse a sí mismo y 409 si el usuario tiene seguimientos o reseñas. `PATCH /usuarios/:id/rol` responde 403 si intenta cambiar su propio rol.
+
+### Animes (catálogo)
+
+| Método | Ruta | Acceso | Descripción | Respuestas |
+|---|---|---|---|---|
+| GET | `/animes` | Público | Lista con filtros: `buscar`, `genero`, `estado`, `anio`, `orden`, `pagina`, `limite` | 200 |
+| GET | `/animes/:id` | Público | Ficha de un anime | 200, 400, 404 |
+| POST | `/animes` | ADMIN | Crea un anime | 201, 400, 401, 403 |
+| PUT | `/animes/:id` | ADMIN | Modifica un anime | 200, 400, 401, 403, 404 |
+| DELETE | `/animes/:id` | ADMIN | Elimina un anime (409 si tiene seguimientos o reseñas) | 200, 400, 401, 403, 404, 409 |
+| POST | `/animes/importar-externo` | ADMIN | Importa desde Jikan/AniList (`malId` o `busqueda`) | 201, 400, 401, 403 |
+
+### Seguimientos (biblioteca personal)
+
+Cada usuario solo ve y modifica sus propios seguimientos (un ADMIN puede moderar).
+
+| Método | Ruta | Acceso | Descripción | Respuestas |
+|---|---|---|---|---|
+| GET | `/seguimientos` | Token | Mi biblioteca; filtro opcional `?estado=Viendo` | 200, 401 |
+| POST | `/seguimientos` | Token | Agrega un anime (`anime_id`, `estado`, `episodioActual`) | 201, 400, 401, 404, 409 |
+| PUT | `/seguimientos/:id` | Token (dueño) | Modifica `estado` y/o `episodioActual` | 200, 400, 401, 403, 404 |
+| PATCH | `/seguimientos/:id/incrementar` | Token (dueño) | Suma un episodio | 200, 400, 401, 403, 404 |
+| DELETE | `/seguimientos/:id` | Token (dueño) | Quita el anime de la biblioteca | 204, 400, 401, 403, 404 |
+
+Estados válidos: `Viendo`, `Completado`, `Pendiente`, `Abandonado`. Al llegar al último episodio pasa a `Completado`.
+
+### Reseñas
+
+| Método | Ruta | Acceso | Descripción | Respuestas |
+|---|---|---|---|---|
+| GET | `/resenas/anime/:animeId` | Público | Reseñas de un anime | 200, 400 |
+| POST | `/resenas` | Token | Crea una reseña (`anime_id`, `calificacion` 1-10, `texto`, `spoiler`) | 201, 400, 401, 404, 409 |
+| PUT | `/resenas/:id` | Token (autor) | Modifica la reseña | 200, 400, 401, 403, 404 |
+| DELETE | `/resenas/:id` | Token (autor) | Elimina la reseña | 204, 400, 401, 403, 404 |
+
+Solo se permite una reseña por usuario y anime. El promedio del anime se recalcula con cada cambio. El ADMIN puede moderar reseñas ajenas.
+
+### Estadísticas
+
+| Método | Ruta | Acceso | Descripción | Respuestas |
+|---|---|---|---|---|
+| GET | `/stats/rankings` | Público | Top mejor valorados y más populares | 200 |
+
+### Formato de errores
+
+Los errores devuelven JSON con un campo `mensaje`. Códigos usados: `400` datos inválidos, `401` token ausente o inválido, `403` sin permisos, `404` no encontrado, `409` conflicto (duplicado o dependencias) y `500` error interno.
+
+Hay una colección de Postman con ejemplos en la carpeta [`docs/`](./docs).
 
 ---
 

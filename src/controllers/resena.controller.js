@@ -62,7 +62,9 @@ export const obtenerResenasPorAnime = async (req, res) => {
 
     res.json(resenas);
   } catch (error) {
-    res.status(500).json({ mensaje: error.message });
+    // Un id con formato inválido es un error del cliente, no del servidor
+    const codigo = error.name === 'CastError' ? 400 : 500;
+    res.status(codigo).json({ mensaje: error.message });
   }
 };
 
@@ -160,6 +162,7 @@ export const eliminarResena = async (req, res) => {
 
     res.status(204).send();
   } catch (error) {
-    res.status(500).json({ mensaje: error.message });
+    const codigo = error.name === 'CastError' ? 400 : 500;
+    res.status(codigo).json({ mensaje: error.message });
   }
 };
