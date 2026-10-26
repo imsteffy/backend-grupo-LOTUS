@@ -1,19 +1,8 @@
 import mongoose from 'mongoose';
 import { MONGO_URI } from './env.js';
 
-/**
- * Conexión asíncrona a la base de datos MongoDB utilizando Mongoose
- */
-export const conectarDB = async () => {
-  try {
-    const conn = await mongoose.connect(MONGO_URI);
-    console.log(` Conectado a MongoDB: ${conn.connection.host} / ${conn.connection.name}`);
-  } catch (error) {
-    console.error(` Error al conectar a MongoDB: ${error.message}`);
-    console.log('ℹ️ Nota: Asegurate de tener MongoDB corriendo localmente o de configurar tu MONGO_URI de Atlas en el archivo .env');
-  }
-};
+mongoose.connection.on('connected', () => console.info(`MongoDB conectado: ${mongoose.connection.name}`));
+mongoose.connection.on('error', (error) => console.error(`Error de conexión MongoDB (${error.name})`));
+mongoose.connection.on('disconnected', () => console.warn('MongoDB desconectado'));
 
-mongoose.connection.on('disconnected', () => {
-  console.log(' MongoDB desconectado');
-});
+export const conectarDB = async () => mongoose.connect(MONGO_URI);
