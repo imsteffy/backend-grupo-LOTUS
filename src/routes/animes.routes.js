@@ -9,6 +9,7 @@ import {
   obtenerAnimePorId,
   crearAnime,
   actualizarAnime,
+  agregarGenerosAnime,
   eliminarAnime,
   importarAnimeExterno
 } from '../controllers/anime.controller.js';
@@ -37,6 +38,9 @@ router.post('/', authToken, authorize('ADMIN'), crearAnime);
 
 // Modificar un anime
 router.put('/:id', authToken, authorize('ADMIN'), actualizarAnime);
+
+// Agregar géneros sin reemplazar los existentes
+router.patch('/:id/generos', authToken, authorize('ADMIN'), agregarGenerosAnime);
 
 // Eliminar un anime
 router.delete('/:id', authToken, authorize('ADMIN'), eliminarAnime);

@@ -306,6 +306,53 @@ export const actualizarAnime = async (req, res) => {
 };
 
 /**
+ * 4b. Agregar géneros a un anime sin pisar los que ya tiene
+ * PATCH /api/animes/:id/generos
+ */
+export const agregarGenerosAnime = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        error: true,
+        mensaje: 'ID de anime inválido'
+      });
+    }
+
+    const resultado = await validarGenerosEnviados(req.body?.generos);
+    if (resultado.error) {
+      return res.status(400).json({ error: true, mensaje: resultado.error });
+    }
+
+    // $addToSet suma solo los que faltan, sin duplicar
+    const animeActualizado = await Anime.findByIdAndUpdate(
+      id,
+      { $addToSet: { generos: { $each: resultado.validos } } },
+      { new: true }
+    );
+
+    if (!animeActualizado) {
+      return res.status(404).json({
+        error: true,
+        mensaje: 'No se encontró el anime'
+      });
+    }
+
+    res.json({
+      mensaje: 'Géneros agregados correctamente',
+      anime: animeActualizado
+    });
+  } catch (error) {
+    console.error('Error al agregar géneros al anime:', error);
+    res.status(500).json({
+      error: true,
+      mensaje: 'Error interno al agregar los géneros'
+    });
+  }
+};
+
+/**
  * 5. Eliminar un anime del catálogo
  * DELETE /api/animes/:id
  */
