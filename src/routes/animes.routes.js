@@ -12,31 +12,33 @@ import {
   eliminarAnime,
   importarAnimeExterno
 } from '../controllers/anime.controller.js';
+import { authToken } from '../middlewares/auth.middleware.js';
+import { authorize } from '../middlewares/authorize.middleware.js';
 
 const router = Router();
 
-// --- Rutas Públicas (Cualquier visitante o usuario autenticado) ---
+// --- Rutas públicas (cualquier visitante) ---
 
-// 1. Listar animes con buscador y filtros (?buscar=&genero=&estado=&anio=&orden=&pagina=&limite=)
+// Listar animes con buscador y filtros (?buscar=&genero=&estado=&anio=&orden=&pagina=&limite=)
 router.get('/', obtenerAnimes);
 
-// 2. Ver ficha técnica completa de un anime por su ID
+// Ficha técnica de un anime
 router.get('/:id', obtenerAnimePorId);
 
-// --- Rutas de Gestión de Catálogo (Exclusivas para Administrador) ---
-// NOTA: Cuando el Integrante 1 termine los middlewares auth y authorize,
-// agregaremos `auth, authorize(['ADMIN'])` como segundo parámetro en estas rutas.
+// --- Rutas de gestión del catálogo (solo ADMIN) ---
+// authToken valida el JWT (401 si falta o es inválido) y
+// authorize('ADMIN') verifica el rol (403 si no alcanza).
 
-// 3. Crear manualmente un anime en el catálogo
-router.post('/', crearAnime);
+// Importar desde la API externa (Jikan / AniList) y persistir localmente
+router.post('/importar-externo', authToken, authorize('ADMIN'), importarAnimeExterno);
 
-// 4. Modificar los datos de un anime existente
-router.put('/:id', actualizarAnime);
+// Crear manualmente un anime
+router.post('/', authToken, authorize('ADMIN'), crearAnime);
 
-// 5. Eliminar un anime del catálogo
-router.delete('/:id', eliminarAnime);
+// Modificar un anime
+router.put('/:id', authToken, authorize('ADMIN'), actualizarAnime);
 
-// 6. Asistente Backend: Importar anime desde Jikan API / MyAnimeList y persistir localmente
-router.post('/importar-externo', importarAnimeExterno);
+// Eliminar un anime
+router.delete('/:id', authToken, authorize('ADMIN'), eliminarAnime);
 
 export default router;
