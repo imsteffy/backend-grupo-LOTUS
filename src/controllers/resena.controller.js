@@ -57,7 +57,7 @@ const esAutorOAdmin = (resena, user) =>
 export const obtenerResenasPorAnime = async (req, res) => {
   try {
     const resenas = await Resena.find({ anime_id: req.params.animeId })
-      .populate('usuario_id', 'nombre avatar')
+      .populate('usuario_id', 'nombre avatar rol')
       .sort({ createdAt: -1 });
 
     res.json(resenas);
