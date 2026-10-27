@@ -31,6 +31,36 @@ Hoy en día, ver anime puede ser un caos porque consumimos contenido en muchas p
 ### 🎯 La Solución Backend (Kiroku)
 Para solucionar todo esto creamos Kiroku (que significa "registro" en japonés), un sistema propio, seguro y súper estable. Al tener su propia base de datos, la plataforma es independiente y no se cae por culpa de terceros. Kiroku está pensado para hacerte la vida más fácil: protege tus datos personales, actualiza y marca tus series como completadas de forma automática, y calcula tus estadísticas para que sepas exactamente cuántas horas de tu vida llevás viendo anime, cuáles son tus géneros favoritos y cuáles son los rankings de la comunidad.
 
+### ⚡ Características Principales y Modelo de Dominio
+
+#### 🗄️ Modelos de Datos (5 Colecciones en MongoDB Atlas)
+* **`Usuario`:** Gestión de cuentas con contraseñas hasheadas criptográficamente (`bcrypt`), roles estrictos (`'STD'` y `'ADMIN'`), validación de email por regex y método de transformación `toJSON` seguro para no exponer contraseñas ni metadatos (`__v`) en las respuestas JSON.
+* **`Anime`:** Catálogo oficial persistido con metadatos completos (título, sinopsis, géneros, total de episodios, estado de emisión, año de estreno y portada). Incluye campos desnormalizados (`calificacionPromedio` y `totalResenas`) calculados automáticamente para lecturas de alto rendimiento.
+* **`Genero`:** Colección independiente que normaliza las etiquetas oficiales del catálogo. Permite al Administrador crear y gestionar géneros en caliente sin alterar código duro.
+* **`Seguimiento`:** Biblioteca personal que vincula a un usuario con un anime mediante un **índice compuesto único** `{ usuario_id: 1, anime_id: 1 }` (la base de datos impide duplicados físicamente), registrando el `estado` (*Viendo, Completado, Pendiente, Abandonado*) y el `episodioActual`.
+* **`Resena`:** Críticas comunitarias con notas del 1 al 10, advertencia booleana de `spoiler`, texto y un **índice compuesto único** `{ usuario_id: 1, anime_id: 1 }` (una única opinión por usuario por título).
+
+#### 🛡️ Matriz de Permisos y Roles (RBAC)
+| Funcionalidad / Recurso | Visitante (Público) | Usuario Estándar (`STD`) | Administrador (`ADMIN`) |
+|---|:---:|:---:|:---:|
+| Explorar catálogo de animes con filtros y paginación | ✅ | ✅ | ✅ |
+| Consultar fichas técnicas y listado de géneros | ✅ | ✅ | ✅ |
+| Leer reseñas comunitarias de cualquier anime | ✅ | ✅ | ✅ |
+| Consultar Rankings globales Top 10 (mejores y populares) | ✅ | ✅ | ✅ |
+| Registrarse e Iniciar Sesión (obtención de token JWT) | ✅ | ✅ | ✅ |
+| Gestionar biblioteca personal (Seguimientos) | ❌ | ✅ (solo propia) | ✅ (propia y moderación) |
+| Avance rápido `+1 Cap` con transición a *"Completado"* | ❌ | ✅ | ✅ |
+| Publicar, editar y borrar opiniones con calificación | ❌ | ✅ (solo propias) | ✅ (propias y moderación) |
+| Dashboard personal con horas vistas y género preferido | ❌ | ✅ | ✅ |
+| Modificar perfil y avatar personal | ❌ | ✅ | ✅ |
+| Alta manual, edición y borrado de animes en catálogo | ❌ | ❌ | ✅ |
+| Ingesta externa asistida desde MyAnimeList/Jikan | ❌ | ❌ | ✅ |
+| Anexar géneros atómicamente (`PATCH /animes/:id/generos` vía `$addToSet`) | ❌ | ❌ | ✅ |
+| CRUD del catálogo de géneros (crear, renombrar, eliminar) | ❌ | ❌ | ✅ |
+| Listar todos los usuarios registrados en el sistema | ❌ | ❌ | ✅ |
+| Cambiar roles de usuarios (`STD` ↔ `ADMIN`) | ❌ | ❌ | ✅ |
+| Eliminar cuentas de usuarios (con chequeo de dependencias) | ❌ | ❌ | ✅ |
+
 ---
 
 ## 2. Guía para la Defensa Oral (División por Integrante)
