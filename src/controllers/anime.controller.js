@@ -549,39 +549,50 @@ const traducirGeneros = (generos) => {
   return [...new Set(traducidos)]; // quita repetidos (ej: Suspense + Thriller)
 };
 
-// Traducción de sinopsis (inglés → español) con el endpoint público de Google Translate.
+// Traducción de sinopsis (inglés → español) con fallback multicanal
+const limpiarSinopsis = (texto) =>
+  texto
+    .replace(/\(Source:[^)]*\)/gi, '')
+    .replace(/\[Written by[^\]]*\]/gi, '')
+    .trim();
 
-const MAX_FRAGMENTO = 1500;
-
-const limpiarSinopsis = (texto) => texto.replace(/\(Source:[^)]*\)/gi, '').trim();
-
-const partirTexto = (texto) => {
-  const oraciones = texto.match(/[^.!?\n]+[.!?\n]*\s*/g) || [texto];
-  const fragmentos = [];
-  let actual = '';
-
-  for (const oracion of oraciones) {
-    if ((actual + oracion).length > MAX_FRAGMENTO && actual) {
-      fragmentos.push(actual);
-      actual = '';
-    }
-    actual += oracion;
-  }
-  if (actual) fragmentos.push(actual);
-
-  return fragmentos;
-};
-
-const traducirFragmento = async (fragmento) => {
+const traducirGoogle = async (texto) => {
   const url =
-    'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q=' +
-    encodeURIComponent(fragmento);
+    'https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=en&tl=es&q=' +
+    encodeURIComponent(texto);
 
-  const respuesta = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-  if (!respuesta.ok) throw new Error(`Traductor respondió HTTP ${respuesta.status}`);
+  const respuesta = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+    signal: AbortSignal.timeout(TIMEOUT_MS)
+  });
+
+  if (!respuesta.ok) throw new Error(`Google respondió HTTP ${respuesta.status}`);
 
   const json = await respuesta.json();
-  return json[0].map((parte) => parte[0]).join('');
+  if (Array.isArray(json) && json.length > 0) {
+    return Array.isArray(json[0]) ? json[0].join(' ') : json.join(' ');
+  }
+  if (typeof json === 'string') return json;
+  throw new Error('Formato de respuesta desconocido');
+};
+
+const traducirMyMemory = async (texto) => {
+  const url =
+    'https://api.mymemory.translated.net/get?q=' +
+    encodeURIComponent(texto.slice(0, 500)) +
+    '&langpair=en|es';
+
+  const respuesta = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+  if (!respuesta.ok) throw new Error(`MyMemory respondió HTTP ${respuesta.status}`);
+
+  const json = await respuesta.json();
+  if (json.responseData?.translatedText) {
+    return json.responseData.translatedText
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&');
+  }
+  throw new Error('Respuesta vacía de MyMemory');
 };
 
 export const traducirSinopsis = async (texto) => {
@@ -589,14 +600,15 @@ export const traducirSinopsis = async (texto) => {
   const limpio = limpiarSinopsis(texto);
 
   try {
-    const traducidos = [];
-    for (const fragmento of partirTexto(limpio)) {
-      traducidos.push(await traducirFragmento(fragmento));
+    return await traducirGoogle(limpio);
+  } catch (errGoogle) {
+    console.warn(`⚠️ Google Translate falló (${errGoogle.message}), probando respaldo MyMemory...`);
+    try {
+      return await traducirMyMemory(limpio);
+    } catch (errMyMemory) {
+      console.warn(`⚠️ No se pudo traducir la sinopsis, se conserva en inglés: ${errMyMemory.message}`);
+      return limpio;
     }
-    return traducidos.join('').trim();
-  } catch (err) {
-    console.warn(`⚠️ No se pudo traducir la sinopsis, se guarda en inglés: ${err.message}`);
-    return limpio;
   }
 };
 
