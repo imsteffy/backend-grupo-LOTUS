@@ -12,9 +12,9 @@
 
 1. [Visión del Proyecto y Problemática](#1-visión-del-proyecto-y-problemática)
 2. [Guía para la Defensa Oral (División por Integrante)](#2-guía-para-la-defensa-oral-división-por-integrante)
-   - [👤 Integrante 1 — Maxi: Autenticación, Usuarios y Seguridad](#-integrante-1--maxi-autenticación-usuarios-y-seguridad)
-   - [👤 Integrante 2 — Steff: Catálogo Oficial, Géneros e Ingesta Externa](#-integrante-2--steff-catálogo-oficial-géneros-e-ingesta-externa)
-   - [👤 Integrante 3 — Jesu: Biblioteca Personal, Reseñas y Analítica](#-integrante-3--jesu-biblioteca-personal-reseñas-y-analítica)
+   - [👤 Integrante 1 (Maxi) — Autenticación, Usuarios y Seguridad](#-integrante-1-maxi--autenticación-usuarios-y-seguridad)
+   - [👤 Integrante 2 (Steff) — Catálogo Oficial, Géneros e Ingesta Externa](#-integrante-2-steff--catálogo-oficial-géneros-e-ingesta-externa)
+   - [👤 Integrante 3 (Jesu) — Biblioteca Personal, Reseñas y Analítica](#-integrante-3-jesu--biblioteca-personal-reseñas-y-analítica)
 3. [Arquitectura del Sistema y Estructura del Repositorio](#3-arquitectura-del-sistema-y-estructura-del-repositorio)
 4. [Instalación, Configuración y Puesta en Marcha](#4-instalación-configuración-y-puesta-en-marcha)
 5. [Diccionario Exhaustivo de Endpoints](#5-diccionario-exhaustivo-de-endpoints)
@@ -35,107 +35,31 @@ Para solucionar todo esto creamos Kiroku (que significa "registro" en japonés),
 
 ## 2. Guía para la Defensa Oral (División por Integrante)
 
-Cada integrante del Grupo LOTUS tiene a su cargo un módulo específico con dominio integral de sus modelos de datos, controladores, rutas y reglas de negocio:
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        ARQUITECTURA MODULAR                            │
-├────────────────────┬────────────────────┬──────────────────────────────┤
-│   INTEGRANTE 1     │    INTEGRANTE 2    │         INTEGRANTE 3         │
-│      (Maxi)        │      (Steff)       │            (Jesu)            │
-├────────────────────┼────────────────────┼──────────────────────────────┤
-│ • Auth & Seguridad │ • Catálogo Animes  │ • Biblioteca (Seguimiento)   │
-│ • Modelo Usuario   │ • Catálogo Géneros │ • Reseñas y Moderación       │
-│ • RBAC (STD/ADMIN) │ • Filtros & Paging │ • Recálculo de Calificaciones│
-│ • Middlewares base │ • Ingesta Externa  │ • Pipelines de Estadísticas  │
-│ • Config DB / Env  │ • Operador $addToSet│ • Rankings Comunitarios      │
-└────────────────────┴────────────────────┴──────────────────────────────┘
-```
+Para la defensa del backend, la arquitectura se dividió de forma equitativa y modular en 3 áreas bien definidas:
 
 ---
 
-### 👤 Integrante 1 — Maxi: Autenticación, Usuarios y Seguridad
-
-#### 🎯 Qué debe explicar y justificar:
-1. **Configuración Inicial del Entorno y Conexión:**
-   - `src/config/db.js`: Conexión asíncrona a MongoDB Atlas mediante Mongoose con manejo de eventos de conexión (`connected`, `error`, `disconnected`).
-   - `src/config/env.js`: Validación estricta de variables de entorno al arrancar (falla de inmediato si `JWT_SECRET` tiene menos de 32 caracteres o si falta `MONGO_URI`).
-2. **Modelo de Datos `Usuario` (`src/models/Usuario.js`):**
-   - Esquema con validación de email por regex y unicidad (`unique: true, lowercase: true`).
-   - Hashing automático de contraseña mediante gancho/método `bcrypt` con 10 salt rounds.
-   - Protección de datos sensibles: campo `password` con `select: false` y método de transformación `toJSON` para eliminar `password` y `__v` de cualquier respuesta enviada al cliente.
-   - Definición del enum de roles: `'STD'` (Estándar) y `'ADMIN'` (Administrador).
-3. **Mecanismo de Seguridad Stateless y Middlewares:**
-   - Emisión de JWT firmado con claims (`id`, `email`, `rol`) y expiración configurable (`24h`).
-   - `src/middlewares/auth.middleware.js`: Extrae el token de la cabecera `Authorization: Bearer <token>`, lo valida criptográficamente con `jwt.verify` e inyecta `req.usuario`.
-   - `src/middlewares/authorize.middleware.js`: Middleware de orden superior (`authorize('ADMIN')`) que bloquea con HTTP `403 Forbidden` a usuarios no autorizados.
-   - `src/middlewares/errorHandler.middleware.js`: Interceptor global de excepciones que captura errores de casteo (`CastError`), duplicados de Mongo (`code 11000 -> 409 Conflict`) y validaciones (`ValidationError -> 400 Bad Request`).
-4. **Reglas de Negocio en la Gestión de Usuarios (`src/controllers/usuario.controller.js`):**
-   - Un usuario estándar solo puede consultar o modificar su propio perfil (`/api/usuarios/me`).
-   - Solo un `ADMIN` puede listar usuarios o cambiar roles (`PATCH /api/usuarios/:id/rol`).
-   - **Regla de Auto-Protección:** Un administrador no puede degradarse a sí mismo a `STD` ni puede auto-eliminarse (retorna `403 Forbidden`).
-   - **Integridad Referencial:** Antes de borrar un usuario (`DELETE /api/usuarios/:id`), el backend comprueba si tiene seguimientos o reseñas activas; si existen, responde `409 Conflict` evitando registros huérfanos.
-5. **Script de Inicialización del Administrador (`src/seed.js`):**
-   - Como el registro público (`POST /api/auth/registro`) siempre asigna rol `STD`, el script `npm run seed:admin` garantiza la creación o elevación del primer Administrador del sistema de forma segura.
+### 👤 Integrante 1 (Maxi) — Autenticación, Usuarios y Seguridad
+Se encargó de la infraestructura base del servidor, la seguridad transversal y el control de accesos:
+* **Conexión e Infraestructura:** Configuró las variables de entorno (`env.js` con validaciones de `MONGO_URI` y `JWT_SECRET`), la conexión central a MongoDB Atlas con manejo de eventos (`db.js`) y el script para inicializar el administrador (`seed.js`).
+* **Modelo y Seguridad:** Creó el modelo `Usuario` con hashing de contraseñas mediante `bcrypt` y método `toJSON` seguro para no exponer credenciales. Implementó la emisión/verificación de tokens **JWT** y los middlewares globales (`auth` para validar tokens, `authorize` para roles `STD`/`ADMIN`, `errorHandler` centralizado y `logger`).
+* **Gestión de Cuentas:** Desarrolló el registro, login, consulta y edición de perfil (`/api/usuarios/me`), y las rutas exclusivas de administración para listar usuarios, cambiar roles y eliminarlos con reglas de auto-protección y chequeo de integridad referencial.
 
 ---
 
-### 👤 Integrante 2 — Steff: Catálogo Oficial, Géneros e Ingesta Externa
-
-#### 🎯 Qué debe explicar y justificar:
-1. **Modelo `Anime` (`src/models/Anime.js`):**
-   - Colección oficial de series con campos obligatorios: `titulo`, `sinopsis`, `generos`, `totalEpisodios`, `estadoEmision` (`'En emisión'`, `'Finalizado'`, `'Por estrenar'`), `imagenPortada` (validada por URL) y `anioEstreno`.
-   - Campos desnormalizados para lectura de alto rendimiento: `calificacionPromedio` y `totalResenas`.
-2. **Catálogo Administrable de Géneros (`src/models/Genero.js` y `src/controllers/genero.controller.js`):**
-   - Colección independiente `generos` para normalizar los nombres válidos sin necesidad de alterar código duro.
-   - **Relación `generos` ↔ `animes` (N:M híbrida / normalizada en validación):**
-     - **Tipo:** Catálogo normalizado con array de texto embebido en `Anime`.
-     - **Cómo funciona:**
-       * La colección **`generos`** almacena los nombres únicos y oficiales (ej: *"Shonen"*, *"Isekai"*, *"Mecha"*).
-       * El modelo **`Anime`** guarda un array de strings: `generos: ["Acción", "Fantasía"]`.
-     - **Regla de integridad:** Al crear o editar un anime (o usar `PATCH /animes/:id/generos`), el controlador valida contra la colección `generos` que todas las etiquetas existan (responde `400 Bad Request` si se envía un género inexistente).
-     - **Protección contra eliminación/renombrado en cascada:** No se permite eliminar ni renombrar un género si actualmente está siendo utilizado por uno o más animes en el catálogo (`409 Conflict`).
-     - **Por qué se diseñó así:**
-       * Evita tener `enums` fijos en código JavaScript, permitiendo que el Administrador cree y gestione géneros dinámicamente desde el panel vía API REST sin necesidad de modificar el código ni redeployar.
-       * Almacenar los nombres como strings en el array de `Anime` evita costosos `$lookup` en cada consulta de lectura del catálogo, manteniendo respuestas ultrarrápidas y paginación ligera, mientras que la integridad referencial se garantiza a nivel de controlador.
-   - Script `src/seedGeneros.js`: Carga idempotente de los 21 géneros base del catálogo.
-3. **Buscador, Filtros Combinados y Paginación en MongoDB (`src/controllers/anime.controller.js`):**
-   - Endpoint `GET /api/animes` diseñado para consultas complejas en una sola llamada:
-     - Búsqueda por coincidencia de texto flexible (`$regex`, case-insensitive en `titulo` o `tituloOriginal`).
-     - Filtro por género (`$in`), estado de emisión y año.
-     - Ordenamiento dinámico (`alfabetico`, `calificacion`, `recientes`).
-     - Paginación nativa eficiente mediante `skip()` y `limit()` devolviendo metadatos de navegación (`total`, `pagina`, `limite`, `totalPaginas`).
-4. **Operación Atómica de Géneros:**
-   - Endpoint `PATCH /api/animes/:id/generos`: Permite al Administrador sumar nuevos géneros a un anime existente utilizando el operador atómico de MongoDB `$addToSet`, garantizando que no se dupliquen etiquetas ni se pisen los géneros existentes.
-5. **Ingesta Externa Asistida (Jikan / MyAnimeList):**
-   - Endpoint `POST /api/animes/importar-externo`: Permite al Administrador buscar una obra en la API pública de MyAnimeList mediante su `malId` o título.
-   - El backend normaliza la estructura externa, traduce y mapea géneros, asegura su existencia en la colección `generos` y persiste la obra en MongoDB Atlas con validación previa de duplicados (`409 Conflict`). De este modo, la app cliente jamás consulta a Jikan directamente, asegurando disponibilidad total.
+### 👤 Integrante 2 (Steff) — Catálogo Oficial, Géneros e Ingesta Externa
+Se encargó del catálogo de series, los filtros avanzados, la administración de géneros y la ingesta externa:
+* **Catálogo y Motor de Búsqueda:** Diseñó el modelo `Anime` y el endpoint `GET /api/animes` con filtros combinados (búsqueda por texto con `$regex`, filtro por género, año, estado de emisión, orden dinámico y paginación nativa con `skip` y `limit`). Desarrolló también el ABM completo de animes para administradores.
+* **Catálogo de Géneros y Relación con Animes:** Creó el modelo `Genero` y su CRUD independiente para que los géneros sean dinámicos sin tocar código. Implementó la validación obligatoria de géneros al guardar animes, la protección ante borrado si están en uso (`409 Conflict`), el script de seed (`seedGeneros.js`) y el nuevo endpoint `PATCH /animes/:id/generos` con el operador atómico `$addToSet`.
+* **Ingesta Externa Asistida:** Desarrolló el endpoint `POST /animes/importar-externo` para consultar la API de **Jikan (MyAnimeList)** y AniList, traduciendo sinopsis y géneros al español para persistirlos directamente en MongoDB Atlas, garantizando independencia total de servicios de terceros.
 
 ---
 
-### 👤 Integrante 3 — Jesu: Biblioteca Personal, Reseñas y Analítica
-
-#### 🎯 Qué debe explicar y justificar:
-1. **Biblioteca Personal de Seguimientos (`src/models/Seguimiento.js` y `src/controllers/seguimiento.controller.js`):**
-   - Colección `seguimientos` con referencia a `usuario_id` y `anime_id`.
-   - **Índice Compuesto Único:** `{ usuario_id: 1, anime_id: 1 }` a nivel base de datos para impedir que un usuario guarde por duplicado el mismo anime.
-   - Estados de seguimiento: `'Viendo'`, `'Completado'`, `'Pendiente'`, `'Abandonado'`.
-   - **Regla de Avance Rápido y Transición Automática (`PATCH /seguimientos/:id/incrementar`):** Incrementa en `+1` el episodio actual. Si el capítulo alcanza el `totalEpisodios` del anime, el backend actualiza de forma automática e inmediata el estado a `'Completado'`.
-2. **Sistema Comunitario de Reseñas (`src/models/Resena.js` y `src/controllers/resena.controller.js`):**
-   - Críticas con calificación de `1` a `10`, texto descriptivo y bandera booleana `spoiler`.
-   - Restricción de una única reseña por usuario y anime mediante índice compuesto `{ usuario_id: 1, anime_id: 1 }`.
-   - **Recálculo Atómico de Métricas:** Cada vez que una reseña se crea, se modifica o se elimina, el controlador dispara un recálculo automático (`calcularPromedioAnime`) que actualiza de forma atómica en el documento del anime los campos `calificacionPromedio` y `totalResenas`.
-   - **Moderación:** El autor puede editar o borrar su reseña; un Administrador tiene privilegios para eliminar cualquier reseña inapropiada.
-   - Soporte para estilización frontend: Se pueblan los datos del autor (`.populate('usuario_id', 'nombre avatar rol')`) permitiendo destacar visualmente las reseñas de administradores.
-3. **Pipelines de Agregación y Analítica Avanzada (`src/controllers/stats.controller.js`):**
-   - **Dashboard Personal (`GET /api/usuarios/me/estadisticas`):** Pipeline que calcula:
-     - Total de animes en seguimiento clasificados por estado.
-     - Total de episodios vistos y cálculo de horas totales de visualización según la fórmula:
-       $$\text{Horas Vistas} = \frac{\text{episodiosVistos} \times 24 \text{ min}}{60}$$
-     - Género predilecto del usuario: Pipeline con `$lookup` a la colección `animes`, `$unwind` de géneros, `$group` por género y `$sort` para obtener el más frecuente.
-   - **Rankings Globales Comunitarios (`GET /api/stats/rankings`):**
-     - **Top 10 Mejor Valorados:** Animes con mayor calificación promedio y al menos una reseña registrada.
-     - **Top 10 Más Populares:** Agregación sobre la colección `seguimientos` agrupando por `anime_id`, contando adeptos totales y aplicando un desempate determinista secundario por título para mantener un podio estable.
+### 👤 Integrante 3 (Jesu) — Biblioteca Personal, Reseñas y Analítica
+Se encargó de la experiencia de seguimiento del usuario, las opiniones comunitarias y los pipelines analíticos:
+* **Biblioteca Personal:** Creó el modelo `Seguimiento` con índice compuesto único `{ usuario_id, anime_id }` para evitar series duplicadas en base de datos. Programó la gestión de estados (*Viendo, Completado, Pendiente, Abandonado*) y el endpoint `PATCH /seguimientos/:id/incrementar` (+1 capítulo) con transición automática a *"Completado"* al finalizar la serie.
+* **Reseñas Comunitarias y Recálculo:** Desarrolló el modelo `Resena` (calificación 1-10, spoiler flag y una sola reseña por usuario por obra) y la lógica de recálculo atómico en el controlador, actualizando en tiempo real el promedio (`calificacionPromedio`) y total de reseñas en la colección de animes.
+* **Pipelines de Analítica:** Implementó las consultas del **Aggregation Framework** de MongoDB para el dashboard personal (`GET /api/usuarios/me/estadisticas`, calculando horas de visualización vistas y el género favorito con `$lookup` y `$unwind`) y los rankings comunitarios del Top 10 más valorados y más populares.
 
 ---
 
