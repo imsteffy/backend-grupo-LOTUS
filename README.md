@@ -63,7 +63,7 @@ Para solucionar todo esto creamos Kiroku (que significa "registro" en japonés),
 
 ---
 
-## 2. Guía para la Defensa Oral (División por Integrante)
+## 2.
 
 Para la defensa del backend, la arquitectura se dividió de forma equitativa y modular en 3 áreas bien definidas:
 
@@ -100,42 +100,15 @@ El proyecto implementa una arquitectura en capas desacoplada con módulos ES6 (`
 ```text
 kiroku-backend/
 ├── docs/                                    # Documentación técnica y colecciones de prueba
-│   ├── Documentación integrada...          # Memoria técnica completa
-│   └── Kiroku-Integrante3.postman_collection.json # Colección de Postman exportada
 ├── src/
 │   ├── app.js                               # Entrada Express, middlewares globales, rutas y 404
 │   ├── seed.js                              # Inicialización/promoción del usuario ADMIN
 │   ├── seedGeneros.js                       # Carga idempotente del catálogo de géneros
 │   ├── config/
-│   │   ├── db.js                            # Conexión asíncrona a MongoDB con eventos
-│   │   └── env.js                           # Validación estricta de variables de entorno
 │   ├── controllers/
-│   │   ├── auth.controller.js               # Registro y login con generación de JWT
-│   │   ├── usuario.controller.js            # Perfil, cambio de roles y eliminación segura
-│   │   ├── anime.controller.js              # CRUD animes, filtros, paginación e importador Jikan
-│   │   ├── genero.controller.js             # CRUD del catálogo de géneros
-│   │   ├── seguimiento.controller.js        # Biblioteca personal y avance +1
-│   │   ├── resena.controller.js             # CRUD de reseñas y recálculo de notas
-│   │   └── stats.controller.js              # Pipelines de agregación (personales y rankings)
 │   ├── middlewares/
-│   │   ├── auth.middleware.js               # Verificación de JWT (Bearer token)
-│   │   ├── authorize.middleware.js          # Control de acceso basado en roles (ADMIN)
-│   │   ├── errorHandler.middleware.js       # Manejo centralizado de excepciones HTTP
-│   │   └── logger.middleware.js             # Registro en consola de peticiones HTTP
 │   ├── models/
-│   │   ├── Usuario.js                       # Schema Usuario (bcrypt, toJSON limpio, roles)
-│   │   ├── Anime.js                         # Schema Anime (índices, validaciones de catálogo)
-│   │   ├── Genero.js                        # Schema Genero (nombres únicos de géneros)
-│   │   ├── Seguimiento.js                   # Schema Seguimiento (índice compuesto único)
-│   │   └── Resena.js                        # Schema Resena (calificación 1-10, spoiler)
 │   └── routes/
-│       ├── auth.routes.js                   # /api/auth
-│       ├── usuarios.routes.js               # /api/usuarios
-│       ├── animes.routes.js                 # /api/animes
-│       ├── generos.routes.js                # /api/generos
-│       ├── seguimientos.routes.js           # /api/seguimientos
-│       ├── resenas.routes.js                # /api/resenas
-│       └── stats.routes.js                  # /api/stats y /api/usuarios/me/estadisticas
 ├── .env.example                             # Plantilla de variables de entorno requeridas
 ├── package.json                             # Dependencias y scripts del proyecto
 └── README.md                                # Guía integral del proyecto y defensa
