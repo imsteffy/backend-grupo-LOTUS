@@ -26,18 +26,10 @@
 ## 1. Visión del Proyecto y Problemática
 
 ### ⚠️ La Problemática
-El consumo contemporáneo de anime se encuentra fragmentado entre múltiples servicios y páginas. Esta dispersión genera:
-* **Pérdida de trazabilidad:** Dificultad para recordar en qué capítulo quedó cada serie o cuáles fueron abandonadas.
-* **Falta de métricas analíticas:** Ausencia de registros sobre el tiempo invertido o los géneros preferidos.
-* **Comunidades desorganizadas:** Críticas sin control de *spoilers* ni moderación.
-* **Dependencia frágil de terceros:** Aplicaciones que colapsan por latencia o límites estrictos (*rate limits*) de APIs públicas externas.
+Hoy en día, ver anime puede ser un caos porque consumimos contenido en muchas plataformas distintas, lo que hace que frecuentemente perdamos el hilo de los capítulos, no tengamos idea de cuánto tiempo invertimos en cada serie y terminemos lidiando con comunidades desorganizadas o llenas de spoilers. Además, muchas de las aplicaciones que usamos terminan fallando o cayéndose porque dependen de servicios externos que colapsan con facilidad.
 
 ### 🎯 La Solución Backend (Kiroku)
-**Kiroku** (del japonés 記録, *"registro / bitácora"*) provee una API REST robusta, modular y desacoplada construida bajo el patrón en capas sobre **Node.js, Express y MongoDB Atlas**.
-* **Persistencia Soberana:** El catálogo vive en nuestra propia base de datos; las APIs externas (Jikan / MyAnimeList) se utilizan exclusivamente como asistente backend de ingesta para el Administrador.
-* **Seguridad Stateless:** Autenticación mediante **JWT** (JSON Web Tokens) en cabeceras `Authorization: Bearer <token>`, hashing de contraseñas con **bcrypt** (10 salt rounds) y control de acceso basado en roles (**RBAC**: `STD` y `ADMIN`).
-* **Lógica de Negocio Atómica:** Transiciones automáticas de estado (ej: pasar a *"Completado"* al alcanzar el último episodio) y recálculo automático del promedio de calificación de animes.
-* **Analítica con Aggregation Pipelines:** Procesamiento nativo en MongoDB para calcular horas de visualización (`(episodios * 24 min) / 60`), géneros favoritos y rankings comunitarios Top 10.
+Para solucionar todo esto creamos Kiroku (que significa "registro" en japonés), un sistema propio, seguro y súper estable. Al tener su propia base de datos, la plataforma es independiente y no se cae por culpa de terceros. Kiroku está pensado para hacerte la vida más fácil: protege tus datos personales, actualiza y marca tus series como completadas de forma automática, y calcula tus estadísticas para que sepas exactamente cuántas horas de tu vida llevás viendo anime, cuáles son tus géneros favoritos y cuáles son los rankings de la comunidad.
 
 ---
 
