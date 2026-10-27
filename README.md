@@ -1,10 +1,15 @@
-# Kiroku — Backend & API REST
-> **Plataforma Integral de Catalogación, Seguimiento Personal y Reseñas de Anime**  
-> **Cátedra:** Programación III (Comisión 3-601 TM) — INSPT  
-> **Profesor:** Carlos E. Cimino  
-> **Grupo:** LOTUS (3 Integrantes)  
-> **Deploy API en Producción:** [https://backend-grupo-lotus.onrender.com](https://backend-grupo-lotus.onrender.com)  
-> **Base de Datos:** MongoDB Atlas (`kiroku_db`)
+<p align="center">
+  <img src="./docs/kiroku_logo.png" alt="Kiroku Logo" width="300" />
+</p>
+
+<h1 align="center">KIROKU — BACKEND & API REST</h1>
+
+<p align="center">
+  <strong>Plataforma Integral de Catalogación, Seguimiento Personal y Reseñas de Anime</strong><br>
+  <strong>Cátedra:</strong> Programación III (Comisión 3-601 TM) — INSPT<br>
+  <strong>Profesor:</strong> Carlos E. Cimino &nbsp;|&nbsp; <strong>Grupo:</strong> LOTUS (3 Integrantes)<br>
+  <strong>Deploy API en Producción:</strong> <a href="https://backend-grupo-lotus.onrender.com">backend-grupo-lotus.onrender.com</a> &nbsp;|&nbsp; <strong>Base de Datos:</strong> MongoDB Atlas (<code>kiroku_db</code>)
+</p>
 
 ---
 
