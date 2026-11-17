@@ -12,6 +12,7 @@
   </p>
 
   <p>
+    <a href="https://frontend-grupo-lotus.vercel.app"><strong>🚀 Frontend en Vivo (Vercel)</strong></a> &nbsp;•&nbsp; 
     <a href="https://backend-grupo-lotus.onrender.com"><strong>🌐 Servidor en Vivo (Render)</strong></a> &nbsp;•&nbsp; 
     <a href="https://backend-grupo-lotus.onrender.com/api/animes"><strong>📡 Catálogo de la API</strong></a> &nbsp;•&nbsp; 
     <strong>Base de Datos:</strong> MongoDB Atlas (<code>kiroku_db</code>)
