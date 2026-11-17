@@ -263,6 +263,41 @@ export const actualizarAnime = async (req, res) => {
       body.generos = resultado.validos;
     }
 
+    // Validación de unicidad de título case-insensitive (Hallazgo 08)
+    if (body.titulo !== undefined) {
+      const tituloTrim = typeof body.titulo === 'string' ? body.titulo.trim() : '';
+      if (!tituloTrim) {
+        return res.status(400).json({ error: true, mensaje: 'El título no puede estar vacío' });
+      }
+      const duplicado = await Anime.findOne({
+        _id: { $ne: id },
+        titulo: { $regex: new RegExp(`^${escaparRegex(tituloTrim)}$`, 'i') }
+      });
+      if (duplicado) {
+        return res.status(409).json({
+          error: true,
+          mensaje: `Ya existe otra serie registrada con el título '${tituloTrim}'`,
+          animeId: duplicado._id
+        });
+      }
+      body.titulo = tituloTrim;
+    }
+
+    // Validación de coherencia: no reducir totalEpisodios por debajo del avance de usuarios existentes (Hallazgo 02)
+    if (body.totalEpisodios !== undefined && body.totalEpisodios > 0) {
+      const Seguimiento = mongoose.model('Seguimiento');
+      const incompatible = await Seguimiento.findOne({
+        anime_id: id,
+        episodioActual: { $gt: body.totalEpisodios }
+      });
+      if (incompatible) {
+        return res.status(409).json({
+          error: true,
+          mensaje: `No se puede reducir el total a ${body.totalEpisodios} episodios porque existen usuarios con seguimientos en capítulos superiores (ej: cap. ${incompatible.episodioActual})`
+        });
+      }
+    }
+
     const animeActualizado = await Anime.findByIdAndUpdate(
       id,
       body,
