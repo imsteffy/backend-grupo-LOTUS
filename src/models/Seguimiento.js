@@ -32,6 +32,10 @@ const seguimientoSchema = new mongoose.Schema(
     episodioActual: {
       type: Number,
       min: [0, 'El episodio no puede ser negativo'],
+      validate: {
+        validator: Number.isInteger,
+        message: 'El episodio actual debe ser un número entero',
+      },
       default: 0,
     },
   },

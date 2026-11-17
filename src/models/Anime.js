@@ -39,6 +39,10 @@ const animeSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'El total de episodios es obligatorio'],
       min: [0, 'El total de episodios no puede ser negativo (0 indica emisión continua o indefinida)'],
+      validate: {
+        validator: Number.isInteger,
+        message: 'El total de episodios debe ser un número entero'
+      },
       default: 0
     },
     estadoEmision: {
@@ -69,7 +73,11 @@ const animeSchema = new mongoose.Schema(
     anioEstreno: {
       type: Number,
       min: [1960, 'El año de estreno no puede ser anterior a 1960'],
-      max: [2035, 'El año de estreno no puede superar el año 2035']
+      max: [2035, 'El año de estreno no puede superar el año 2035'],
+      validate: {
+        validator: (v) => v === undefined || v === null || Number.isInteger(v),
+        message: 'El año de estreno debe ser un número entero'
+      }
     },
     calificacionPromedio: {
       type: Number,
