@@ -21,9 +21,10 @@ const obtenerAnime = (id) => mongoose.model('Anime').findById(id);
 // Recibe el seguimiento (con los cambios ya aplicados) y el
 // anime. Devuelve un mensaje de error, o null si todo está bien.
 //   1) No se puede pasar del total de episodios.
-//   2) Si el estado es "Completado", el episodio pasa a ser el total.
-//   3) Si el episodio llega al total, pasa solo a "Completado".
-const aplicarReglas = (seguimiento, anime) => {
+//   2) Si el episodio llega al total, pasa solo a "Completado".
+//   3) Si el estado es "Completado" y fue enviado expresamente,
+//      el episodio pasa a ser el total.
+const aplicarReglas = (seguimiento, anime, estadoExplicitamenteEnviado = false) => {
   const total = anime.totalEpisodios;
 
   if (total > 0 && seguimiento.episodioActual > total) {
@@ -31,10 +32,10 @@ const aplicarReglas = (seguimiento, anime) => {
   }
 
   if (total > 0) {
-    if (seguimiento.estado === 'Completado') {
-      seguimiento.episodioActual = total;
-    } else if (seguimiento.episodioActual === total) {
+    if (seguimiento.episodioActual === total) {
       seguimiento.estado = 'Completado';
+    } else if (seguimiento.estado === 'Completado' && estadoExplicitamenteEnviado) {
+      seguimiento.episodioActual = total;
     }
   }
 
@@ -52,7 +53,7 @@ const esAutorOAdmin = (seguimiento, user) =>
 // ============================================================
 // Devuelve la biblioteca del usuario logueado.
 // Filtro opcional por estado: /api/seguimientos?estado=Viendo
-export const obtenerSeguimientos = async (req, res) => {
+export const obtenerSeguimientos = async (req, res, next) => {
   try {
     const filtro = { usuario_id: req.user.id };
     if (req.query.estado) filtro.estado = req.query.estado;
@@ -61,14 +62,14 @@ export const obtenerSeguimientos = async (req, res) => {
     const seguimientos = await Seguimiento.find(filtro).populate('anime_id');
     res.json(seguimientos);
   } catch (error) {
-    res.status(500).json({ mensaje: error.message });
+    next(error);
   }
 };
 
 // ============================================================
 //  crearSeguimiento — POST /api/seguimientos
 // ============================================================
-export const crearSeguimiento = async (req, res) => {
+export const crearSeguimiento = async (req, res, next) => {
   try {
     const { anime_id, estado, episodioActual } = req.body;
 
@@ -100,7 +101,7 @@ export const crearSeguimiento = async (req, res) => {
     // inválido no sea reemplazado por "Completado" sin avisar.
     await nuevo.validate();
 
-    const errorRegla = aplicarReglas(nuevo, anime);
+    const errorRegla = aplicarReglas(nuevo, anime, estado !== undefined);
     if (errorRegla) {
       return res.status(400).json({ mensaje: errorRegla });
     }
@@ -108,7 +109,7 @@ export const crearSeguimiento = async (req, res) => {
     const creado = await nuevo.save();
     res.status(201).json(creado);
   } catch (error) {
-    res.status(400).json({ mensaje: error.message });
+    next(error);
   }
 };
 
@@ -116,7 +117,7 @@ export const crearSeguimiento = async (req, res) => {
 //  actualizarSeguimiento — PUT /api/seguimientos/:id
 // ============================================================
 // Solo el autor o un ADMIN. Permite cambiar estado y/o episodio.
-export const actualizarSeguimiento = async (req, res) => {
+export const actualizarSeguimiento = async (req, res, next) => {
   try {
     const { estado, episodioActual } = req.body;
 
@@ -129,14 +130,27 @@ export const actualizarSeguimiento = async (req, res) => {
       return res.status(403).json({ mensaje: 'No podés modificar este seguimiento' });
     }
 
+    const anime = await obtenerAnime(seguimiento.anime_id);
+    if (!anime) {
+      return res.status(404).json({ mensaje: 'Anime asociado no encontrado' });
+    }
+
+    const total = anime.totalEpisodios || 0;
+
     // Actualización parcial: solo se cambia lo que llegó en el body
     if (estado !== undefined) seguimiento.estado = estado;
-    if (episodioActual !== undefined) seguimiento.episodioActual = episodioActual;
+    if (episodioActual !== undefined) {
+      seguimiento.episodioActual = episodioActual;
+      // Precedencia al retroceder (Hallazgo 03): si el usuario retrocede el episodio sin enviar
+      // estado y estaba en "Completado", transiciona naturalmente a "Viendo".
+      if (estado === undefined && seguimiento.estado === 'Completado' && total > 0 && episodioActual < total) {
+        seguimiento.estado = 'Viendo';
+      }
+    }
 
     await seguimiento.validate();
 
-    const anime = await obtenerAnime(seguimiento.anime_id);
-    const errorRegla = aplicarReglas(seguimiento, anime);
+    const errorRegla = aplicarReglas(seguimiento, anime, estado !== undefined);
     if (errorRegla) {
       return res.status(400).json({ mensaje: errorRegla });
     }
@@ -144,16 +158,16 @@ export const actualizarSeguimiento = async (req, res) => {
     const actualizado = await seguimiento.save();
     res.json(actualizado);
   } catch (error) {
-    res.status(400).json({ mensaje: error.message });
+    next(error);
   }
 };
 
 // ============================================================
 //  incrementarEpisodio — PATCH /api/seguimientos/:id/incrementar
 // ============================================================
-// Acción rápida: suma +1 episodio. Si estaba "Pendiente" pasa a
-// "Viendo", y si llega al último episodio pasa a "Completado".
-export const incrementarEpisodio = async (req, res) => {
+// Acción rápida: suma +1 episodio atómicamente en MongoDB (Hallazgo 06).
+// Si estaba "Pendiente" pasa a "Viendo", y si llega al total pasa a "Completado".
+export const incrementarEpisodio = async (req, res, next) => {
   try {
     const seguimiento = await Seguimiento.findById(req.params.id);
     if (!seguimiento) {
@@ -165,27 +179,67 @@ export const incrementarEpisodio = async (req, res) => {
     }
 
     const anime = await obtenerAnime(seguimiento.anime_id);
+    if (!anime) {
+      return res.status(404).json({ mensaje: 'Anime asociado no encontrado' });
+    }
 
-    if (anime.totalEpisodios > 0 && seguimiento.episodioActual >= anime.totalEpisodios) {
+    const total = anime.totalEpisodios || 0;
+
+    if (total > 0 && seguimiento.episodioActual >= total) {
       return res.status(400).json({ mensaje: 'Ya viste todos los episodios' });
     }
 
-    seguimiento.episodioActual += 1;
-    if (seguimiento.estado === 'Pendiente') seguimiento.estado = 'Viendo';
+    // Actualización atómica condicional directamente en la base de datos (Hallazgo 06)
+    // Evita condiciones de carrera entre peticiones concurrentes
+    const filtro = {
+      _id: req.params.id,
+      ...(total > 0 ? { episodioActual: { $lt: total } } : {})
+    };
 
-    aplicarReglas(seguimiento, anime);
+    const actualizado = await Seguimiento.findOneAndUpdate(
+      filtro,
+      [
+        {
+          $set: {
+            episodioActual: { $add: ['$episodioActual', 1] },
+            estado: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $gt: [total, 0] },
+                    { $gte: [{ $add: ['$episodioActual', 1] }, total] }
+                  ]
+                },
+                then: 'Completado',
+                else: {
+                  $cond: {
+                    if: { $eq: ['$estado', 'Pendiente'] },
+                    then: 'Viendo',
+                    else: '$estado'
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      { new: true, runValidators: true }
+    );
 
-    const actualizado = await seguimiento.save();
+    if (!actualizado) {
+      return res.status(400).json({ mensaje: 'Ya viste todos los episodios' });
+    }
+
     res.json(actualizado);
   } catch (error) {
-    res.status(400).json({ mensaje: error.message });
+    next(error);
   }
 };
 
 // ============================================================
 //  eliminarSeguimiento — DELETE /api/seguimientos/:id
 // ============================================================
-export const eliminarSeguimiento = async (req, res) => {
+export const eliminarSeguimiento = async (req, res, next) => {
   try {
     const seguimiento = await Seguimiento.findById(req.params.id);
     if (!seguimiento) {
@@ -199,8 +253,6 @@ export const eliminarSeguimiento = async (req, res) => {
     await seguimiento.deleteOne();
     res.status(204).send();
   } catch (error) {
-    // Un id con formato inválido es un error del cliente, no del servidor
-    const codigo = error.name === 'CastError' ? 400 : 500;
-    res.status(codigo).json({ mensaje: error.message });
+    next(error);
   }
 };
