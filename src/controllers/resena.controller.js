@@ -21,26 +21,31 @@ const Anime = () => mongoose.model('Anime');
 // Función interna. Usa un pipeline de agregación: filtra las
 // reseñas del anime ($match), las agrupa ($group) y calcula el
 // promedio ($avg) y la cantidad ($sum). Luego guarda ambos
-// valores en el anime con un solo $set.
+// valores en el anime con un solo $set de forma asincrónica.
 const recalcularAnime = async (animeId) => {
-  const [resumen] = await Resena.aggregate([
-    { $match: { anime_id: new mongoose.Types.ObjectId(animeId) } },
-    {
-      $group: {
-        _id: '$anime_id',
-        promedio: { $avg: '$calificacion' },
-        total: { $sum: 1 },
+  try {
+    const [resumen] = await Resena.aggregate([
+      { $match: { anime_id: new mongoose.Types.ObjectId(animeId) } },
+      {
+        $group: {
+          _id: '$anime_id',
+          promedio: { $avg: '$calificacion' },
+          total: { $sum: 1 },
+        },
       },
-    },
-  ]);
+    ]);
 
-  // Sin reseñas, el grupo no existe: se vuelve a 0
-  const promedio = resumen ? Math.round(resumen.promedio * 10) / 10 : 0;
-  const total = resumen ? resumen.total : 0;
+    // Sin reseñas, el grupo no existe: se vuelve a 0
+    const promedio = resumen ? Math.round(resumen.promedio * 10) / 10 : 0;
+    const total = resumen ? resumen.total : 0;
 
-  await Anime().findByIdAndUpdate(animeId, {
-    $set: { calificacionPromedio: promedio, totalResenas: total },
-  });
+    await Anime().findByIdAndUpdate(animeId, {
+      $set: { calificacionPromedio: promedio, totalResenas: total },
+    });
+  } catch (error) {
+    console.error(`[Reseñas] Error al recalcular métricas del anime ${animeId}:`, error.message);
+    throw error;
+  }
 };
 
 // ============================================================
@@ -54,7 +59,7 @@ const esAutorOAdmin = (resena, user) =>
 // ============================================================
 // Público. populate trae nombre y avatar del autor en lugar de
 // mostrar solo su id. Las más nuevas primero.
-export const obtenerResenasPorAnime = async (req, res) => {
+export const obtenerResenasPorAnime = async (req, res, next) => {
   try {
     const resenas = await Resena.find({ anime_id: req.params.animeId })
       .populate('usuario_id', 'nombre avatar rol')
@@ -62,16 +67,14 @@ export const obtenerResenasPorAnime = async (req, res) => {
 
     res.json(resenas);
   } catch (error) {
-    // Un id con formato inválido es un error del cliente, no del servidor
-    const codigo = error.name === 'CastError' ? 400 : 500;
-    res.status(codigo).json({ mensaje: error.message });
+    next(error);
   }
 };
 
 // ============================================================
 //  crearResena — POST /api/resenas
 // ============================================================
-export const crearResena = async (req, res) => {
+export const crearResena = async (req, res, next) => {
   try {
     const { anime_id, calificacion, texto, spoiler } = req.body;
 
@@ -106,15 +109,15 @@ export const crearResena = async (req, res) => {
 
     res.status(201).json(creada);
   } catch (error) {
-    res.status(400).json({ mensaje: error.message });
+    next(error);
   }
 };
 
 // ============================================================
 //  actualizarResena — PUT /api/resenas/:id
 // ============================================================
-// Solo el autor o un ADMIN. Permite cambiar nota, texto y spoiler.
-export const actualizarResena = async (req, res) => {
+// Solo el autor original puede modificar el texto y su nota.
+export const actualizarResena = async (req, res, next) => {
   try {
     const { calificacion, texto, spoiler } = req.body;
 
@@ -123,8 +126,9 @@ export const actualizarResena = async (req, res) => {
       return res.status(404).json({ mensaje: 'Reseña no encontrada' });
     }
 
-    if (!esAutorOAdmin(resena, req.user)) {
-      return res.status(403).json({ mensaje: 'No podés modificar esta reseña' });
+    // Solo el autor original puede editar sus propias palabras
+    if (resena.usuario_id.toString() !== req.user.id) {
+      return res.status(403).json({ mensaje: 'Solo el autor original puede modificar su reseña' });
     }
 
     // Actualización parcial: solo se cambia lo que llegó en el body
@@ -137,7 +141,7 @@ export const actualizarResena = async (req, res) => {
 
     res.json(actualizada);
   } catch (error) {
-    res.status(400).json({ mensaje: error.message });
+    next(error);
   }
 };
 
@@ -146,7 +150,7 @@ export const actualizarResena = async (req, res) => {
 // ============================================================
 // El autor puede borrar la suya; un ADMIN puede borrar cualquiera
 // (moderación).
-export const eliminarResena = async (req, res) => {
+export const eliminarResena = async (req, res, next) => {
   try {
     const resena = await Resena.findById(req.params.id);
     if (!resena) {
@@ -162,7 +166,6 @@ export const eliminarResena = async (req, res) => {
 
     res.status(204).send();
   } catch (error) {
-    const codigo = error.name === 'CastError' ? 400 : 500;
-    res.status(codigo).json({ mensaje: error.message });
+    next(error);
   }
 };
