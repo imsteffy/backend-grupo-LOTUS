@@ -101,7 +101,7 @@ Se encargó del catálogo de series, los filtros avanzados, la administración d
 ### 👤 Integrante 3 (Jesu) — Biblioteca Personal, Reseñas y Analítica
 Se encargó de la experiencia de seguimiento del usuario, las opiniones comunitarias y los pipelines analíticos:
 * **Biblioteca Personal:** Creó el modelo `Seguimiento` con índice compuesto único `{ usuario_id, anime_id }` para evitar series duplicadas en base de datos. Programó la gestión de estados (*Viendo, Completado, Pendiente, Abandonado*) y el endpoint `PATCH /seguimientos/:id/incrementar` (+1 capítulo) con transición automática a *"Completado"* al finalizar la serie.
-* **Reseñas Comunitarias y Recálculo:** Desarrolló el modelo `Resena` (calificación 1-10, spoiler flag y una sola reseña por usuario por obra) y la lógica de recálculo atómico en el controlador, actualizando en tiempo real el promedio (`calificacionPromedio`) y total de reseñas en la colección de animes.
+* **Reseñas Comunitarias y Recálculo:** Desarrolló el modelo `Resena` (calificación 1-10, spoiler flag y una sola reseña por usuario por obra) y la lógica de recálculo consistente por agregación en el controlador, actualizando en tiempo real el promedio (`calificacionPromedio`) y total de reseñas en la colección de animes.
 * **Pipelines de Analítica:** Implementó las consultas del **Aggregation Framework** de MongoDB para el dashboard personal (`GET /api/usuarios/me/estadisticas`, calculando horas de visualización vistas y el género favorito con `$lookup` y `$unwind`) y los rankings comunitarios del Top 10 más valorados y más populares.
 
 ---
@@ -336,7 +336,7 @@ Este guion está diseñado para ser ejecutado en orden durante la presentación 
 │  4   │ Ingesta externa y PATCH $addToSet        │ Integrante 2 (Steff) │
 │  5   │ Registro y Login de Usuario STD          │ Integrante 1 (Maxi)  │
 │  6   │ Biblioteca y Avance +1 (Autocompletado)  │ Integrante 3 (Jesu)  │
-│  7   │ Reseñas y Recálculo Atómico de Promedio  │ Integrante 3 (Jesu)  │
+│  7   │ Reseñas y Recálculo de Promedio          │ Integrante 3 (Jesu)  │
 │  8   │ Estadísticas, Rankings y Pruebas RBAC    │ Todo el equipo       │
 └──────┴──────────────────────────────────────────┴──────────────────────┘
 ```

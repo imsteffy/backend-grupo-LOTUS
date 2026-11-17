@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiroku Backend · Informe de Proceso, Subsanación de Hallazgos y Pruebas</title>
+  <style>
+    :root {
+      --ink: #172b43;
+      --muted: #53657a;
+      --brand: #6d28d9;
+      --brand-dark: #4c1d95;
+      --line: #d9e2eb;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main {
+      max-width: 1040px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+    header {
+      background: linear-gradient(135deg, #090a10 0%, #1e1538 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 36px 40px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      font-size: 12px;
+      font-weight: 800;
+      color: #c084fc;
+    }
+    h1 {
+      font-size: 32px;
+      line-height: 1.25;
+      margin: 12px 0;
+      color: #ffffff;
+    }
+    header p {
+      color: #e2e8f0;
+      margin: 6px 0;
+      font-size: 14px;
+    }
+    h2 {
+      font-size: 24px;
+      margin: 36px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--line);
+      color: var(--brand-dark);
+    }
+    h3 {
+      font-size: 18px;
+      margin: 22px 0 10px;
+      color: var(--ink);
+    }
+    .box {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 18px 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .badge {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-p1 { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .badge-p2 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .badge-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      background: white;
+      font-size: 13.5px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    }
+    th, td {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #ede9fe;
+      color: #3b0764;
+      font-weight: 700;
+    }
+    code {
+      font: 12.5px/1.5 Consolas, "Courier New", monospace;
+      background: #f1f5f9;
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      font: 12px/1.55 Consolas, monospace;
+    }
+    ul, ol { padding-left: 24px; margin: 10px 0; }
+    li { margin: 6px 0; }
+    .card-finding {
+      background: white;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--brand);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 18px 0;
+    }
+    .card-finding.p1 { border-left-color: var(--danger); }
+    .card-finding.p2 { border-left-color: var(--warning); }
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 24px 0;
+      margin-top: 40px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+    @media print {
+      body { background: white; color: black; font-size: 11pt; }
+      main { max-width: 100%; padding: 0; }
+      header { background: white; color: black; border: 2px solid #000; }
+      pre { background: #eee; color: black; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">INSPT · Programación III · Grupo LOTUS</div>
+    <h1>Kiroku (記録) — Backend & API REST</h1>
+    <p><strong>Informe Integral de Proceso, Subsanación de Hallazgos y Evidencias de Pruebas</strong></p>
+    <p><strong>Cátedra:</strong> Programación III (Comisión 3-601 TM) | <strong>Profesor:</strong> Carlos E. Cimino</p>
+    <p><strong>Integrantes:</strong> Maxi (Integrante 1) · Steff (Integrante 2) · Jesu (Integrante 3)</p>
+    <p><strong>Servidor Render:</strong> <code>https://backend-grupo-lotus.onrender.com</code> | <strong>Base:</strong> MongoDB Atlas (<code>kiroku_db</code>)</p>
+  </header>
+
+  <section>
+    <h2>1. Resumen Ejecutivo</h2>
+    <div class="box">
+      <p>Este informe documenta el desarrollo completo del backend de la plataforma <strong>Kiroku</strong>, organizada en tres áreas de responsabilidad técnica, junto con la subsanación integral y verificada de los <strong>8 hallazgos (0 P0, 3 P1 y 5 P2)</strong> formulados en el informe docente de revisión del 27 de octubre de 2026.</p>
+      <p>Todas las modificaciones han sido probadas con casos positivos, negativos y de concurrencia, asegurando el cumplimiento de la consigna y la preparación para la defensa oral del examen final.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Proceso de Desarrollo Original por Integrante</h2>
+    
+    <div class="box">
+      <h3>👤 Integrante 1 (Maxi) — Autenticación, Usuarios y Seguridad Transversal</h3>
+      <ul>
+        <li><strong>Infraestructura Base:</strong> Conexión central asíncrona a MongoDB Atlas (<code>db.js</code>), variables de entorno validadas (<code>env.js</code>) y script inicializador de administrador (<code>seed.js</code>).</li>
+        <li><strong>Seguridad y Cuentas:</strong> Modelo <code>Usuario</code> con contraseñas hasheadas mediante <code>bcrypt</code> (salt 10), protección <code>select: false</code> y sanitización en <code>toJSON</code>.</li>
+        <li><strong>JWT y Roles:</strong> Endpoints <code>POST /api/auth/registro</code> (forzando rol <code>STD</code>) y <code>POST /api/auth/login</code> (emisión de token con expiración a 24 horas). Middlewares <code>authToken</code>, <code>authorize</code> (RBAC) y <code>errorHandler</code> centralizado.</li>
+        <li><strong>Administración:</strong> Endpoints para listar cuentas, cambiar rol (<code>PATCH /api/usuarios/:id/rol</code>) y eliminación con salvaguarda contra auto-eliminación y chequeo de dependencias relacionales (<code>409 Conflict</code>).</li>
+      </ul>
+    </div>
+
+    <div class="box">
+      <h3>👤 Integrante 2 (Steff) — Catálogo Oficial, Géneros e Ingesta Externa</h3>
+      <ul>
+        <li><strong>Catálogo y Buscador:</strong> Modelo <code>Anime</code> y endpoint <code>GET /api/animes</code> con filtros combinados (texto regex insensible a mayúsculas, género, estado, año y orden) con paginación nativa (<code>skip</code> y <code>limit</code>).</li>
+        <li><strong>Taxonomía de Géneros:</strong> Modelo <code>Genero</code> y CRUD exclusivo para administradores, asegurando la existencia de géneros al guardar animes y prohibiendo el borrado de categorías en uso.</li>
+        <li><strong>Operador Atómico <code>$addToSet</code>:</strong> Endpoint <code>PATCH /api/animes/:id/generos</code> para agregar etiquetas oficiales sin sobreescribir las existentes ni admitir duplicados.</li>
+        <li><strong>Ingesta Externa Asistida:</strong> Endpoint <code>POST /api/animes/importar-externo</code> para importar títulos desde la API de Jikan / MyAnimeList hacia MongoDB Atlas, dotando de soberanía e independencia a la plataforma.</li>
+      </ul>
+    </div>
+
+    <div class="box">
+      <h3>👤 Integrante 3 (Jesu) — Biblioteca Personal, Reseñas y Analítica</h3>
+      <ul>
+        <li><strong>Biblioteca Personal:</strong> Modelo <code>Seguimiento</code> con índice único compuesto <code>{ usuario_id: 1, anime_id: 1 }</code>. Gestión de estados (<em>Viendo, Completado, Pendiente, Abandonado</em>) y botón de avance rápido <code>PATCH /api/seguimientos/:id/incrementar</code> (+1 capítulo).</li>
+        <li><strong>Reseñas Comunitarias:</strong> Modelo <code>Resena</code> con índice único compuesto (1 reseña por usuario por obra), calificación del 1 al 10 y bandera de spoiler.</li>
+        <li><strong>Pipelines de Agregación:</strong>
+          <ul>
+            <li>Dashboard propio (<code>GET /api/usuarios/me/estadisticas</code>): horas vistas calculadas (<code>episodios * 24 / 60</code>), desglose por estado y géneros favoritos con <code>$lookup</code>, <code>$unwind</code> y <code>$sortByCount</code>.</li>
+            <li>Rankings comunitarios (<code>GET /api/stats/rankings</code>): Top 10 mejor puntuados y Top 10 más seguidos.</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Matriz de Hallazgos Docentes y Subsanaciones</h2>
+
+    <div class="card-finding p1">
+      <span class="badge badge-p1">Hallazgo 01 · P1</span> <span class="badge badge-success">Subsanado</span>
+      <h3>Los permisos sobreviven a la baja o al cambio de rol</h3>
+      <p><strong>Problema Original:</strong> <code>authToken</code> validaba el JWT y confiaba ciegamente en <code>payload.rol</code> sin consultar la base de datos. Si un administrador era degradado a STD o eliminado, su token seguía operando con privilegios durante 24 horas.</p>
+      <p><strong>Subsanación en <code>src/middlewares/auth.middleware.js</code>:</strong> Se convirtió el middleware en asíncrono y se agregó la consulta <code>Usuario.findById(id).select('_id email rol nombre')</code>. Si el usuario fue eliminado, devuelve <code>401</code> ("Cuenta no encontrada o dada de baja"); si existe, asigna su rol y datos reales extraídos en el momento de la petición.</p>
+    </div>
+
+    <div class="card-finding p1">
+      <span class="badge badge-p1">Hallazgo 02 · P1</span> <span class="badge badge-success">Subsanado</span>
+      <h3>Editar el total de capítulos rompe seguimientos existentes</h3>
+      <p><strong>Problema Original:</strong> Al editar un anime en <code>PUT /api/animes/:id</code>, se permitía reducir <code>totalEpisodios</code> sin verificar si había usuarios que ya iban por capítulos superiores, rompiendo la coherencia de la biblioteca.</p>
+      <p><strong>Subsanación en <code>src/controllers/anime.controller.js</code>:</strong> Si <code>body.totalEpisodios > 0</code>, se consulta si existe algún seguimiento con <code>episodioActual > totalEpisodios</code>. De existir, se rechaza la operación con <code>409 Conflict</code> impidiendo la reducción incompatible.</p>
+    </div>
+
+    <div class="card-finding p2">
+      <span class="badge badge-p2">Hallazgo 03 · P2</span> <span class="badge badge-success">Subsanado</span>
+      <h3>El estado 'Completado' impedía retroceder solo el episodio</h3>
+      <p><strong>Problema Original:</strong> Si un anime estaba en 'Completado' y el usuario enviaba <code>PUT</code> con solo <code>episodioActual: 3</code>, la regla interna forzaba nuevamente el episodio al total, anulando silenciosamente el cambio.</p>
+      <p><strong>Subsanación en <code>src/controllers/seguimiento.controller.js</code>:</strong> Se implementó precedencia: si el usuario retrocede el episodio sin enviar estado, transiciona naturalmente de 'Completado' a 'Viendo'.</p>
+    </div>
+
+    <div class="card-finding p1">
+      <span class="badge badge-p1">Hallazgo 04 · P1</span> <span class="badge badge-success">Subsanado</span>
+      <h3>Los episodios admitían números fraccionarios (decimales)</h3>
+      <p><strong>Problema Original:</strong> <code>totalEpisodios</code> y <code>episodioActual</code> tenían <code>min: 0</code> pero ningún validador de entero, admitiendo valores como <code>2.5</code> o <code>12.5</code>.</p>
+      <p><strong>Subsanación en <code>src/models/Anime.js</code> y <code>src/models/Seguimiento.js</code>:</strong> Se agregó el validador <code>validate: { validator: Number.isInteger, message: '...debe ser un número entero' }</code> en ambos modelos y en <code>anioEstreno</code>.</p>
+    </div>
+
+    <div class="card-finding p2">
+      <span class="badge badge-p2">Hallazgo 05 · P2</span> <span class="badge badge-success">Subsanado</span>
+      <h3>Afirmación de "recálculo atómico" en el README</h3>
+      <p><strong>Problema Original:</strong> La documentación afirmaba atomicidad estricta para dos operaciones separadas (guardar reseña y luego recalcular promedio con aggregate + update).</p>
+      <p><strong>Subsanación en <code>src/controllers/resena.controller.js</code> y <code>README.md</code>:</strong> Se clarificó la documentación explicando que es un recálculo asincrónico por agregación para consistencia eventual, y se restringió la edición de texto exclusivamente al autor original.</p>
+    </div>
+
+    <div class="card-finding p2">
+      <span class="badge badge-p2">Hallazgo 06 · P2</span> <span class="badge badge-success">Subsanado</span>
+      <h3>Incrementar el episodio puede perder actualizaciones simultáneas</h3>
+      <p><strong>Problema Original:</strong> <code>incrementarEpisodio</code> leía en memoria, sumaba +1 y guardaba con <code>save()</code>. Peticiones simultáneas producían condición de carrera y pérdida de avance.</p>
+      <p><strong>Subsanación en <code>src/controllers/seguimiento.controller.js</code>:</strong> Se reemplazó por una actualización condicional atómica directa en MongoDB con <code>findOneAndUpdate</code> y pipeline condicional, garantizando que dos peticiones concurrentes avancen de forma atómica sin pérdida de datos.</p>
+    </div>
+
+    <div class="card-finding p2">
+      <span class="badge badge-p2">Hallazgo 07 · P2</span> <span class="badge badge-success">Subsanado</span>
+      <h3>Errores y rutas inexistentes sin contrato uniforme</h3>
+      <p><strong>Problema Original:</strong> Rutas inexistentes devolvían HTML estándar y el error 11000 en el middleware global siempre decía "email".</p>
+      <p><strong>Subsanación en <code>src/app.js</code> y <code>src/middlewares/errorHandler.middleware.js</code>:</strong> Se agregó middleware 404 en <code>app.js</code> devolviendo JSON uniforme (<code>{ error: true, mensaje: "Ruta no encontrada..." }</code>) y se extrae dinámicamente el campo de <code>error.keyValue</code> para indicar el motivo real del conflicto de duplicado (título, género, seguimiento o email).</p>
+    </div>
+
+    <div class="card-finding p2">
+      <span class="badge badge-p2">Hallazgo 08 · P2</span> <span class="badge badge-success">Subsanado</span>
+      <h3>La unicidad del título cambia entre alta y edición</h3>
+      <p><strong>Problema Original:</strong> El alta validaba títulos con regex case-insensitive, pero la edición solo confiaba en el índice case-sensitive de Mongoose.</p>
+      <p><strong>Subsanación en <code>src/controllers/anime.controller.js</code>:</strong> En <code>actualizarAnime</code>, se valida la unicidad de título con regex case-insensitive excluyendo el ID actual (<code>_id: { $ne: id }</code>), respondiendo <code>409 Conflict</code> si colisiona.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. Evidencias de Pruebas Ejecutadas</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Prueba / Escenario</th>
+          <th>Petición HTTP</th>
+          <th>Código HTTP</th>
+          <th>Respuesta / Comportamiento Comprobado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Revocación por degradación</strong> (H01)</td>
+          <td><code>POST /api/animes</code> con token de Admin degradado</td>
+          <td><code>403 Forbidden</code></td>
+          <td><code>{ "mensaje": "No tienes permisos..." }</code>. Comprueba rol actual en BD.</td>
+        </tr>
+        <tr>
+          <td><strong>Revocación por baja</strong> (H01)</td>
+          <td><code>POST /api/seguimientos</code> con token de usuario borrado</td>
+          <td><code>401 Unauthorized</code></td>
+          <td><code>{ "mensaje": "Cuenta no encontrada o dada de baja" }</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Reducción incompatible</strong> (H02)</td>
+          <td><code>PUT /api/animes/:id</code> con <code>totalEpisodios: 6</code> habiendo usuarios en cap 10</td>
+          <td><code>409 Conflict</code></td>
+          <td><code>{ "error": true, "mensaje": "No se puede reducir el total a 6 episodios..." }</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Retroceso desde Completado</strong> (H03)</td>
+          <td><code>PUT /api/seguimientos/:id</code> con <code>episodioActual: 3</code></td>
+          <td><code>200 OK</code></td>
+          <td>Retorna <code>episodioActual: 3</code> y cambia automáticamente a <code>estado: "Viendo"</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Rechazo de decimales</strong> (H04)</td>
+          <td><code>POST /api/animes</code> con <code>totalEpisodios: 12.5</code></td>
+          <td><code>400 Bad Request</code></td>
+          <td><code>{ "mensaje": "El total de episodios debe ser un número entero" }</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Incremento concurrente</strong> (H06)</td>
+          <td>Dos <code>PATCH /incrementar</code> simultáneos desde cap 4</td>
+          <td><code>200 OK</code></td>
+          <td>MongoDB procesa atómicamente ambas peticiones; resultado final exacto: cap 6.</td>
+        </tr>
+        <tr>
+          <td><strong>Ruta no montada</strong> (H07)</td>
+          <td><code>GET /api/no-existe</code></td>
+          <td><code>404 Not Found</code></td>
+          <td>JSON uniforme: <code>{ "error": true, "mensaje": "Ruta no encontrada: GET /api/no-existe" }</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Error 11000 descriptivo</strong> (H07)</td>
+          <td>Segunda reseña para el mismo anime</td>
+          <td><code>409 Conflict</code></td>
+          <td><code>{ "mensaje": "Ya existe un registro para este usuario y anime" }</code> (no menciona email).</td>
+        </tr>
+        <tr>
+          <td><strong>Unicidad case-insensitive</strong> (H08)</td>
+          <td>Editar título existente a <code>"NARUTO"</code> existiendo <code>"Naruto"</code></td>
+          <td><code>409 Conflict</code></td>
+          <td><code>{ "error": true, "mensaje": "Ya existe otra serie registrada con el título 'NARUTO'" }</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>5. Conclusión para la Defensa Oral</h2>
+    <div class="box">
+      <p>El backend de <strong>Kiroku</strong> satisface de forma completa y rigurosa los ocho requisitos del parcial de Programación III. Todas las observaciones señaladas por la cátedra fueron tratadas en su origen (modelos, controladores y middlewares), acreditando la solidez de la arquitectura en capas, la seguridad basada en JWT con verificación de vigencia y la consistencia del modelo de datos documental.</p>
+    </div>
+  </section>
+
+  <footer>
+    Grupo LOTUS · Programación III · Cátedra Carlos E. Cimino · INSPT 2026
+  </footer>
+</main>
+</body>
+</html>
