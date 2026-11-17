@@ -44,6 +44,14 @@ app.use('/api/seguimientos', seguimientosRoutes);
 app.use('/api/resenas', resenasRoutes);
 app.use('/api/stats', statsRoutes);
 
+// Manejador 404 para rutas no encontradas con contrato uniforme (Hallazgo 07)
+app.use((req, res) => {
+  res.status(404).json({
+    error: true,
+    mensaje: `Ruta no encontrada: ${req.method} ${req.originalUrl}`
+  });
+});
+
 // Debe registrarse después de todas las rutas para recibir sus errores.
 app.use(errorHandler);
 
